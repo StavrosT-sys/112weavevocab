@@ -21,3 +21,5 @@ Enhanced English vocabulary learning with adaptive spaced repetition - 100% Oxfo
 Built with React 19 + Vite + Tailwind + Framer Motion. No backend.
 
 <!-- Redeploy trigger: 2025-11-17 05:03:13 UTC -->
+
+<!-- Force deploy: 2025-11-17 05:31:24 UTC -->
