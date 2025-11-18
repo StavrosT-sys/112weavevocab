@@ -1,13 +1,14 @@
 // src/components/WordGraph.tsx
-// Bulletproof onNodeClick solution - bypasses useStore!
+// Echo Chamber - Sequential audio feedback with spreading activation
 
-import { memo, useMemo, useState } from 'react'
+import { memo, useMemo, useState, useCallback, useRef, useEffect } from 'react'
 import ReactFlow, { 
   Node, 
   Edge, 
   Background,
   Controls,
   NodeProps,
+  useReactFlow,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { words, Word } from '../data/words'
@@ -49,9 +50,10 @@ const nodeTypes = {
   wordNode: MemoizedCustomNode
 }
 
-export default function WordGraph({ lessonId }: { lessonId?: number }) {
-  // BULLETPROOF STATE - bypasses useStore entirely!
+function WordGraphInner({ lessonId }: { lessonId?: number }) {
+  const { getNodes, getEdges } = useReactFlow()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const activeTimeouts = useRef<Set<number>>(new Set())
 
   // Filter words
   const filtered = useMemo(() => 
@@ -83,10 +85,10 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           english: word.text, 
           portuguese: word.portuguese 
         },
-        selected: word.id.toString() === selectedId, // Manual selection tracking
+        selected: word.id.toString() === selectedId,
       }
     })
-  }, [filtered, selectedId]) // Re-create when selectedId changes
+  }, [filtered, selectedId])
 
   // Create base edges
   const edges = useMemo(() => {
@@ -97,7 +99,6 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         const dy = node.position.y - other.position.y
         const distance = Math.sqrt(dx * dx + dy * dy)
 
-        // Increased distance + always create some edges so we can see them
         if (distance < 380) {
           edgeList.push({
             id: `${node.id}-${other.id}`,
@@ -108,7 +109,6 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         }
       })
     })
-    console.log('Created edges:', edgeList.length)
     return edgeList
   }, [nodes])
 
@@ -118,6 +118,79 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     type: 'glowing',
     data: { selectedId },
   }))
+
+  // Cleanup all active echoes
+  const clearAllEchoes = useCallback(() => {
+    activeTimeouts.current.forEach(t => clearTimeout(t))
+    activeTimeouts.current.clear()
+    document.querySelectorAll('.react-flow__node.echo-active').forEach(el => {
+      el.classList.remove('echo-active')
+    })
+  }, [])
+
+  // Echo Chamber - Sequential audio playback
+  const handleNodeClick = useCallback((_event: any, clickedNode: Node) => {
+    // Set selected node
+    setSelectedId(clickedNode.id)
+
+    // Immediate cleanup - prevent overlap
+    clearAllEchoes()
+
+    // Find all directly connected node IDs
+    const connectedIds = new Set<string>()
+    getEdges().forEach(edge => {
+      if (edge.source === clickedNode.id) connectedIds.add(edge.target)
+      if (edge.target === clickedNode.id) connectedIds.add(edge.source)
+    })
+
+    if (connectedIds.size === 0) return
+
+    // Get actual node objects
+    const neighborNodes = getNodes()
+      .filter(n => connectedIds.has(n.id))
+      .filter(Boolean)
+
+    // Play echo sequence
+    neighborNodes.forEach((node, index) => {
+      const delay = 280 + index * 680 // 280ms initial synaptic delay
+
+      const timeoutId = setTimeout(() => {
+        // Visual flash
+        const nodeEl = document.querySelector<HTMLElement>(
+          `.react-flow__node[data-id="${node.id}"]`
+        )
+        if (nodeEl) {
+          nodeEl.classList.add('echo-active')
+          // Auto-remove class when animation ends
+          const removeClass = () => {
+            nodeEl.classList.remove('echo-active')
+            nodeEl.removeEventListener('animationend', removeClass)
+          }
+          nodeEl.addEventListener('animationend', removeClass)
+        }
+
+        // Audio - safe fallback
+        if (node.data?.english) {
+          const audio = new Audio(`/audio/${node.data.english.toLowerCase()}.mp3`)
+          audio.volume = 0.8
+          audio.play().catch(() => {
+            // Silently fail if audio blocked/missing - never crashes
+            console.log(`Audio not available for: ${node.data.english}`)
+          })
+        }
+
+        // Auto-remove from tracking set
+        activeTimeouts.current.delete(timeoutId)
+      }, delay)
+
+      activeTimeouts.current.add(timeoutId)
+    })
+  }, [getNodes, getEdges, clearAllEchoes])
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => clearAllEchoes()
+  }, [clearAllEchoes])
 
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
@@ -132,8 +205,11 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         selectNodesOnDrag={false}
         fitView
         fitViewOptions={{ padding: 0.3 }}
-        onNodeClick={(_, node) => setSelectedId(node.id)}
-        onPaneClick={() => setSelectedId(null)}
+        onNodeClick={handleNodeClick}
+        onPaneClick={() => {
+          setSelectedId(null)
+          clearAllEchoes()
+        }}
         attributionPosition="bottom-right"
         proOptions={{ hideAttribution: true }}
       >
@@ -160,8 +236,15 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       
       <div className="absolute top-8 left-8 bg-black/70 backdrop-blur-lg rounded-2xl p-6 text-white max-w-sm pointer-events-none">
         <h2 className="text-4xl font-bold mb-3">A Rede Semântica</h2>
-        <p className="text-lg opacity-90">Clique em uma palavra para ver conexões</p>
+        <p className="text-lg opacity-90">Clique em uma palavra para ouvir conexões</p>
       </div>
     </div>
+  )
+}
+
+// Wrapper to provide ReactFlow context
+export default function WordGraph(props: { lessonId?: number }) {
+  return (
+    <WordGraphInner {...props} />
   )
 }

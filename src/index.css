@@ -7,3 +7,29 @@ body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: linear-gradient(to br, #1e3a8a, #7c3aed);
 }
+
+/* ============================================
+   ECHO CHAMBER - Sequential Audio Feedback
+   ============================================ */
+
+/* Echo pulse animation for connected nodes */
+.react-flow__node.echo-active {
+  animation: echo-pulse 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
+  z-index: 100 !important; /* Above other nodes */
+  pointer-events: none;   /* Prevent interference during animation */
+}
+
+@keyframes echo-pulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0);
+  }
+  40% {
+    transform: scale(1.35);
+    box-shadow: 0 0 50px 12px rgba(0, 255, 255, 0.75);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(0, 255, 255, 0);
+  }
+}
