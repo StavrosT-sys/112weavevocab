@@ -31,7 +31,8 @@ function WordNode({ data }: NodeProps) {
         transition: 'all 0.2s ease',
         padding: '8px',
         fontSize: '12px',
-        textAlign: 'center'
+        textAlign: 'center',
+        pointerEvents: 'all'
       }}
     >
       <div>
@@ -39,15 +40,12 @@ function WordNode({ data }: NodeProps) {
         <div className="text-xs text-cyan-400 mt-1 word-translation">{data.translation}</div>
       </div>
       <style>{`
-        .word-node:hover {
+        .react-flow__node:hover .word-node {
           background: #ffd700 !important;
           border: 4px solid #00ffff !important;
           box-shadow: 0 0 20px #00ffff !important;
           transform: scale(1.2) !important;
           z-index: 1000 !important;
-        }
-        .word-node:hover .word-translation {
-          display: block !important;
         }
       `}</style>
     </div>
