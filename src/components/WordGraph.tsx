@@ -1,5 +1,5 @@
 // src/components/WordGraph.tsx
-// Static semantic network - no physics, just beautiful visualization
+// Static semantic network - clean and spacious
 
 import { useEffect, useRef, useState } from 'react'
 import { words, Word } from '../data/words'
@@ -26,22 +26,25 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     canvas.height = height * devicePixelRatio
     ctx.scale(devicePixelRatio, devicePixelRatio)
 
+    // Limit to 120 words for cleaner visualization
     const filtered = lessonId 
       ? words.filter(w => w.lesson === lessonId)
-      : words.slice(0, 400) // cap for performance
+      : words.slice(0, 120)
 
-    // Create static layout - circular arrangement with some randomness
+    // Create spacious layout - use full screen with good spacing
     const centerX = width / 2
     const centerY = height / 2
-    const radius = Math.min(width, height) * 0.35
+    const maxRadius = Math.min(width, height) * 0.45
     
     nodes.current = filtered.map((w, i) => {
       const angle = (i / filtered.length) * Math.PI * 2
-      const r = radius * (0.5 + Math.random() * 0.5)
+      // Vary radius from 40% to 100% of maxRadius for depth
+      const radiusVariation = 0.4 + Math.random() * 0.6
+      const r = maxRadius * radiusVariation
       return {
         ...w,
-        x: centerX + Math.cos(angle) * r + (Math.random() - 0.5) * 50,
-        y: centerY + Math.sin(angle) * r + (Math.random() - 0.5) * 50
+        x: centerX + Math.cos(angle) * r,
+        y: centerY + Math.sin(angle) * r
       }
     })
 
@@ -52,23 +55,26 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       ctx.fillStyle = '#0f0720'
       ctx.fillRect(0, 0, width, height)
 
-      // Draw connections (only for nearby nodes)
-      nodes.current.forEach((a, i) => {
-        nodes.current.slice(i + 1).forEach(b => {
-          const dx = a.x - b.x
-          const dy = a.y - b.y
-          const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 120) {
-            const active = hovered === a.id || hovered === b.id
-            ctx.strokeStyle = active ? '#00ffff80' : '#7c3aed20'
-            ctx.lineWidth = active ? 2 : 1
-            ctx.beginPath()
-            ctx.moveTo(a.x, a.y)
-            ctx.lineTo(b.x, b.y)
-            ctx.stroke()
-          }
-        })
-      })
+      // Draw connections (only for nearby nodes and when hovering)
+      if (hovered !== null) {
+        const hoveredNode = nodes.current.find(n => n.id === hovered)
+        if (hoveredNode) {
+          nodes.current.forEach(other => {
+            if (other.id === hovered) return
+            const dx = hoveredNode.x - other.x
+            const dy = hoveredNode.y - other.y
+            const dist = Math.sqrt(dx * dx + dy * dy)
+            if (dist < 200) {
+              ctx.strokeStyle = '#00ffff40'
+              ctx.lineWidth = 1
+              ctx.beginPath()
+              ctx.moveTo(hoveredNode.x, hoveredNode.y)
+              ctx.lineTo(other.x, other.y)
+              ctx.stroke()
+            }
+          })
+        }
+      }
 
       // Draw nodes
       nodes.current.forEach(node => {
@@ -78,7 +84,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         // Draw circle
         ctx.fillStyle = active ? '#ffd700' : `hsl(${hue}, 70%, 55%)`
         ctx.beginPath()
-        ctx.arc(node.x, node.y, active ? 10 : 6, 0, Math.PI * 2)
+        ctx.arc(node.x, node.y, active ? 12 : 8, 0, Math.PI * 2)
         ctx.fill()
 
         // Draw glow for active node
@@ -86,22 +92,20 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           ctx.strokeStyle = '#00ffff'
           ctx.lineWidth = 3
           ctx.beginPath()
-          ctx.arc(node.x, node.y, 16, 0, Math.PI * 2)
+          ctx.arc(node.x, node.y, 20, 0, Math.PI * 2)
           ctx.stroke()
-        }
-
-        // Always draw text for better visibility
-        ctx.fillStyle = active ? '#ffffff' : '#ffffff80'
-        ctx.font = active ? 'bold 14px sans-serif' : '11px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(node.text, node.x, node.y - 18)
-        
-        // Draw Portuguese translation when hovered
-        if (active) {
-          ctx.font = 'bold 12px sans-serif'
+          
+          // Draw text only when hovered
+          ctx.fillStyle = '#ffffff'
+          ctx.font = 'bold 18px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(node.text, node.x, node.y - 35)
+          
+          // Draw Portuguese translation
+          ctx.font = 'bold 14px sans-serif'
           ctx.fillStyle = '#00ffff'
-          ctx.fillText(node.portuguese, node.x, node.y + 25)
+          ctx.fillText(node.portuguese, node.x, node.y + 35)
         }
       })
 
@@ -123,7 +127,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           const x = e.clientX - rect.left
           const y = e.clientY - rect.top
           const found = nodes.current.find(n => 
-            Math.hypot(n.x - x, n.y - y) < 25
+            Math.hypot(n.x - x, n.y - y) < 30
           )
           setHovered(found?.id || null)
         }}
@@ -131,6 +135,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white">
         <h2 className="text-3xl font-bold mb-2">A Rede Semântica</h2>
         <p className="opacity-80">Passe o mouse sobre qualquer palavra</p>
+        <p className="text-sm opacity-60 mt-2">120 palavras do Oxford 3000</p>
       </div>
     </div>
   )
