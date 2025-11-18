@@ -98,7 +98,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         const dx = nodeA.position.x - nodeB.position.x
         const dy = nodeA.position.y - nodeB.position.y
         const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < 200) {
+        if (dist < 250) {
           edgeList.push({
             id: `${nodeA.id}-${nodeB.id}`,
             source: nodeA.id,
