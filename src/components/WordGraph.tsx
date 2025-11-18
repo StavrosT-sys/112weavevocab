@@ -1,7 +1,7 @@
 // src/components/WordGraph.tsx
-// Professional React Flow implementation with useStore and custom edges!
+// Team's corrected solution - proper scaling and weave!
 
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
 import ReactFlow, { 
   Node, 
   Edge, 
@@ -15,51 +15,47 @@ import ReactFlow, {
 import 'reactflow/dist/style.css'
 import { words, Word } from '../data/words'
 
-// Custom node with proper scaling using useStore
-function WordNode({ data, id }: NodeProps) {
-  // Access React Flow's internal state for hover detection
-  const isHovered = useStore((s) => {
-    const node = s.nodeInternals.get(id)
-    return node?.selected || false
-  })
-
+// Custom node with proper selected prop
+function CustomNode({ data, selected }: NodeProps) {
   return (
     <div className="group">
+      {/* THIS INNER DIV SCALES */}
       <div
         className={`
-          transition-all duration-300 ease-out
-          ${isHovered ? 'scale-125' : 'scale-100'}
+          transition-transform duration-200 ease-out
+          ${selected ? 'scale-125' : 'scale-100'}
+          origin-center
         `}
-        style={{ 
-          transformOrigin: 'center',
-          width: '80px',
-          height: '80px'
-        }}
       >
-        <div 
-          className="rounded-full flex items-center justify-center text-center p-2 border-2"
-          style={{
-            background: isHovered ? '#ffd700' : data.bgColor,
-            borderColor: isHovered ? '#00ffff' : 'transparent',
-            boxShadow: isHovered ? '0 0 20px #00ffff' : 'none',
-            color: 'white',
-            width: '100%',
-            height: '100%',
-            fontSize: '12px'
-          }}
+        <div
+          className={`
+            px-5 py-3 rounded-full min-w-28 text-center font-medium text-white
+            shadow-lg backdrop-blur-sm border-2
+            ${selected 
+              ? 'bg-yellow-400 text-black border-cyan-400 shadow-cyan-400/50' 
+              : 'bg-red-600/90 border-purple-500'
+            }
+          `}
         >
-          <div>
-            <div className="font-bold text-sm">{data.word}</div>
-            <div className="text-xs text-cyan-400 mt-1">{data.translation}</div>
-          </div>
+          <div className="text-lg font-bold">{data.english}</div>
+          <div className="text-xs opacity-80">{data.portuguese}</div>
         </div>
       </div>
     </div>
   )
 }
 
-// Custom edge with glow effect
-function GlowingEdge({ id, sourceX, sourceY, targetX, targetY, source, target }: EdgeProps) {
+const MemoizedCustomNode = memo(CustomNode)
+
+// Glowing edge with proper useStore
+function GlowingEdge({
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  source,
+  target,
+}: EdgeProps) {
   const sourceNode = useStore((s) => s.nodeInternals.get(source))
   const targetNode = useStore((s) => s.nodeInternals.get(target))
   const isActive = sourceNode?.selected || targetNode?.selected
@@ -68,38 +64,36 @@ function GlowingEdge({ id, sourceX, sourceY, targetX, targetY, source, target }:
     sourceX,
     sourceY,
     targetX,
-    targetY
+    targetY,
   })
 
   return (
-    <g>
-      {/* Outer glow when active */}
+    <>
+      {/* Outer glow (only when active) */}
       {isActive && (
         <path
           d={edgePath}
-          strokeWidth={12}
-          stroke="cyan"
-          opacity={0.3}
+          stroke="#00ffff"
+          strokeWidth={16}
           fill="none"
-          strokeLinecap="round"
+          opacity={0.3}
+          className="pointer-events-none"
         />
       )}
-      {/* Main path */}
+      {/* Inner line */}
       <path
-        id={id}
-        className="react-flow__edge-path"
         d={edgePath}
-        strokeWidth={isActive ? 4 : 1.5}
         stroke={isActive ? '#00ffff' : '#7c3aed40'}
+        strokeWidth={isActive ? 3 : 1}
         fill="none"
         strokeLinecap="round"
       />
-    </g>
+    </>
   )
 }
 
 const nodeTypes = {
-  wordNode: WordNode
+  wordNode: MemoizedCustomNode
 }
 
 const edgeTypes = {
@@ -125,7 +119,6 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       const angle = (i / filtered.length) * Math.PI * 2
       const radiusVariation = 0.5 + Math.random() * 0.5
       const r = radius * radiusVariation
-      const bgColor = `hsl(${word.stability * 120}, 70%, 55%)`
 
       return {
         id: word.id.toString(),
@@ -135,9 +128,8 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           y: centerY + Math.sin(angle) * r
         },
         data: { 
-          word: word.text,
-          translation: word.portuguese,
-          bgColor: bgColor
+          english: word.text,
+          portuguese: word.portuguese
         },
         draggable: false,
         selectable: true
@@ -158,8 +150,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
             id: `${nodeA.id}-${nodeB.id}`,
             source: nodeA.id,
             target: nodeB.id,
-            type: 'glowing',
-            animated: false
+            type: 'glowing'
           })
         }
       })
@@ -174,22 +165,24 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         edges={edges}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
-        fitView
-        fitViewOptions={{ padding: 0.2 }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}
+        fitView
+        fitViewOptions={{ padding: 0.3 }}
+        onNodeClick={(_e, node) => {
+          console.log('Clicked:', node.data.english)
+        }}
         attributionPosition="bottom-right"
         proOptions={{ hideAttribution: true }}
       >
-        <Background color="#7c3aed20" gap={32} />
+        <Background color="#0f0720" gap={40} />
         <Controls />
       </ReactFlow>
       
-      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white max-w-xs pointer-events-none">
-        <h2 className="text-3xl font-bold mb-2">A Rede Semântica</h2>
-        <p className="opacity-80 text-lg">Clique em qualquer palavra</p>
-        <p className="text-sm opacity-60 mt-2">60 palavras principais</p>
+      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur-lg rounded-2xl p-6 text-white max-w-sm pointer-events-none">
+        <h2 className="text-4xl font-bold mb-3">A Rede Semântica</h2>
+        <p className="text-lg opacity-90">Clique em uma palavra para ver conexões</p>
       </div>
     </div>
   )
