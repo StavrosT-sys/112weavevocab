@@ -136,33 +136,47 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
   const handleNodeClick = useCallback((_event: any, clickedNode: Node) => {
     // Set selected node
     setSelectedId(clickedNode.id)
+    console.log('🎯 Node clicked:', clickedNode.id, clickedNode.data)
 
     // Immediate cleanup - prevent overlap
     clearAllEchoes()
 
     // Find all directly connected node IDs
     const connectedIds = new Set<string>()
-    getEdges().forEach(edge => {
+    const allEdges = getEdges()
+    console.log('📊 Total edges:', allEdges.length)
+    
+    allEdges.forEach(edge => {
       if (edge.source === clickedNode.id) connectedIds.add(edge.target)
       if (edge.target === clickedNode.id) connectedIds.add(edge.source)
     })
 
-    if (connectedIds.size === 0) return
+    console.log('🔗 Connected node IDs:', Array.from(connectedIds))
+    if (connectedIds.size === 0) {
+      console.log('⚠️ No connected nodes found!')
+      return
+    }
 
     // Get actual node objects
     const neighborNodes = getNodes()
       .filter(n => connectedIds.has(n.id))
       .filter(Boolean)
 
+    console.log('👥 Neighbor nodes found:', neighborNodes.length, neighborNodes.map(n => n.id))
+
     // Play echo sequence
     neighborNodes.forEach((node, index) => {
       const delay = 280 + index * 680 // 280ms initial synaptic delay
 
       const timeoutId = setTimeout(() => {
+        console.log(`✨ Echo ${index + 1}/${neighborNodes.length}: ${node.id} (${node.data?.english})`)
+        
         // Visual flash
         const nodeEl = document.querySelector<HTMLElement>(
           `.react-flow__node[data-id="${node.id}"]`
         )
+        console.log('🔍 DOM element found:', !!nodeEl, nodeEl?.className)
+        
         if (nodeEl) {
           nodeEl.classList.add('echo-active')
           // Auto-remove class when animation ends
