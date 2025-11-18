@@ -33,6 +33,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       const angle = (i / filtered.length) * Math.PI * 2
       const radiusVariation = 0.5 + Math.random() * 0.5
       const r = radius * radiusVariation
+      const bgColor = `hsl(${word.stability * 120}, 70%, 55%)`
 
       return {
         id: word.id.toString(),
@@ -47,10 +48,11 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
               <div className="font-bold text-sm">{word.text}</div>
               <div className="text-xs text-cyan-400 mt-1">{word.portuguese}</div>
             </div>
-          )
+          ),
+          originalBg: bgColor // Store original color
         },
         style: {
-          background: `hsl(${word.stability * 120}, 70%, 55%)`,
+          background: bgColor,
           color: 'white',
           border: '2px solid transparent',
           borderRadius: '50%',
@@ -61,7 +63,8 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           justifyContent: 'center',
           cursor: 'pointer',
           fontSize: '12px',
-          padding: '8px'
+          padding: '8px',
+          transition: 'all 0.2s ease'
         }
       }
     })
@@ -101,11 +104,22 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           return {
             ...n,
             style: {
-              ...n.style,
+              background: '#ffd700',
+              color: 'white',
               border: '4px solid #00ffff',
+              borderRadius: '50%',
+              width: 80,
+              height: 80,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '12px',
+              padding: '8px',
               boxShadow: '0 0 20px #00ffff',
               transform: 'scale(1.2)',
-              zIndex: 1000
+              zIndex: 1000,
+              transition: 'all 0.2s ease'
             }
           }
         }
@@ -129,20 +143,29 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
   }, [setNodes, setEdges])
 
   const onNodeMouseLeave: NodeMouseHandler = useCallback((_event, node) => {
-    // Reset node style
+    // Reset node style using stored original color
     setNodes((nds) =>
       nds.map((n) => {
         if (n.id === node.id) {
-          const word = filtered.find(w => w.id.toString() === n.id)!
           return {
             ...n,
             style: {
-              ...n.style,
-              background: `hsl(${word.stability * 120}, 70%, 55%)`,
+              background: n.data.originalBg || '#ef4444', // Fallback to red
+              color: 'white',
               border: '2px solid transparent',
+              borderRadius: '50%',
+              width: 80,
+              height: 80,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              fontSize: '12px',
+              padding: '8px',
               boxShadow: 'none',
               transform: 'scale(1)',
-              zIndex: 1
+              zIndex: 1,
+              transition: 'all 0.2s ease'
             }
           }
         }
@@ -163,7 +186,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         return e
       })
     )
-  }, [setNodes, setEdges, filtered])
+  }, [setNodes, setEdges])
 
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
