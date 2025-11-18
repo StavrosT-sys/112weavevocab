@@ -9,6 +9,7 @@ import ReactFlow, {
   Controls,
   NodeProps,
   useReactFlow,
+  ReactFlowProvider,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { words, Word } from '../data/words'
@@ -245,6 +246,8 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
 // Wrapper to provide ReactFlow context
 export default function WordGraph(props: { lessonId?: number }) {
   return (
-    <WordGraphInner {...props} />
+    <ReactFlowProvider>
+      <WordGraphInner {...props} />
+    </ReactFlowProvider>
   )
 }
