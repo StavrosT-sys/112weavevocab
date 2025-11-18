@@ -90,24 +90,30 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     })
   }, [filtered])
 
-  // Create edges (connections between nearby nodes)
+  // Create edges (connections between nearby nodes) - NUCLEAR OPTION
   const edges: Edge[] = useMemo(() => {
-    const edgeList: Edge[] = []
-    nodes.forEach((nodeA, i) => {
-      nodes.slice(i + 1).forEach(nodeB => {
-        const dx = nodeA.position.x - nodeB.position.x
-        const dy = nodeA.position.y - nodeB.position.y
-        const dist = Math.sqrt(dx * dx + dy * dy)
-        if (dist < 250) {
-          edgeList.push({
-            id: `${nodeA.id}-${nodeB.id}`,
-            source: nodeA.id,
-            target: nodeB.id,
-            type: 'glowing'
+    const edgeList = nodes.flatMap((node, i) => {
+      const connections: Edge[] = []
+      nodes.slice(i + 1).forEach((other) => {
+        const dx = node.position.x - other.position.x
+        const dy = node.position.y - other.position.y
+        const distance = Math.sqrt(dx * dx + dy * dy)
+
+        // Increased distance + always create some edges so we can see them
+        if (distance < 380) {
+          connections.push({
+            id: `${node.id}-${other.id}`,
+            source: node.id,
+            target: other.id,
+            type: 'glowing',
+            animated: false,
+            style: { stroke: '#a855f760' }, // force visible purple base
           })
         }
       })
+      return connections
     })
+    console.log('Created edges:', edgeList.length)
     return edgeList
   }, [nodes])
 

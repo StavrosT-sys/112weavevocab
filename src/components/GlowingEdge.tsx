@@ -34,11 +34,10 @@ export default function GlowingEdge(edge: EdgeProps) {
       {/* Main line */}
       <path
         d={edgePath}
-        stroke={isActive ? '#00ffff' : '#a855f7'}
-        strokeWidth={isActive ? 4 : 2}
+        stroke={isActive ? '#00ffff' : '#ff00ff'}
+        strokeWidth={isActive ? 6 : 3}
         fill="none"
         strokeLinecap="round"
-        opacity={isActive ? 1 : 0.3}
       />
     </>
   )
