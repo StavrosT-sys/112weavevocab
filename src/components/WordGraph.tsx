@@ -1,168 +1,190 @@
 // src/components/WordGraph.tsx
-// Bold, easy-to-click semantic network
+// React Flow semantic network - proper event handling!
 
-import { useEffect, useRef, useState } from 'react'
-import { words, Word } from '../data/words'
-
-interface Node extends Word {
-  x: number
-  y: number
-}
+import { useCallback, useMemo } from 'react'
+import ReactFlow, { 
+  Node, 
+  Edge, 
+  Background,
+  Controls,
+  useNodesState,
+  useEdgesState,
+  NodeMouseHandler
+} from 'reactflow'
+import 'reactflow/dist/style.css'
+import { words } from '../data/words'
 
 export default function WordGraph({ lessonId }: { lessonId?: number }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [hovered, setHovered] = useState<number | null>(null)
-  const nodes = useRef<Node[]>([])
-
-  // Initialize nodes ONCE on mount
-  useEffect(() => {
-    const canvas = canvasRef.current!
-    const rect = canvas.getBoundingClientRect()
-    const width = rect.width
-    const height = rect.height
-
-    // Only 60 words for spacious, easy-to-click layout
-    const filtered = lessonId 
+  // Filter words
+  const filtered = useMemo(() => 
+    lessonId 
       ? words.filter(w => w.lesson === lessonId).slice(0, 60)
-      : words.slice(0, 60)
+      : words.slice(0, 60),
+    [lessonId]
+  )
 
-    // Use 80% of screen space - fill the viewport!
-    const centerX = width / 2
-    const centerY = height / 2
-    const maxRadius = Math.min(width, height) * 0.48
-    
-    // Generate positions ONCE - never regenerate!
-    nodes.current = filtered.map((w, i) => {
+  // Create nodes in circular layout
+  const initialNodes: Node[] = useMemo(() => {
+    const centerX = 400
+    const centerY = 400
+    const radius = 350
+
+    return filtered.map((word, i) => {
       const angle = (i / filtered.length) * Math.PI * 2
-      // Vary radius from 50% to 100% of maxRadius
       const radiusVariation = 0.5 + Math.random() * 0.5
-      const r = maxRadius * radiusVariation
+      const r = radius * radiusVariation
+
       return {
-        ...w,
-        x: centerX + Math.cos(angle) * r,
-        y: centerY + Math.sin(angle) * r
+        id: word.id.toString(),
+        type: 'default',
+        position: {
+          x: centerX + Math.cos(angle) * r,
+          y: centerY + Math.sin(angle) * r
+        },
+        data: { 
+          label: (
+            <div className="text-center">
+              <div className="font-bold text-sm">{word.text}</div>
+              <div className="text-xs text-cyan-400 mt-1">{word.portuguese}</div>
+            </div>
+          )
+        },
+        style: {
+          background: `hsl(${word.stability * 120}, 70%, 55%)`,
+          color: 'white',
+          border: '2px solid transparent',
+          borderRadius: '50%',
+          width: 80,
+          height: 80,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          fontSize: '12px',
+          padding: '8px'
+        }
       }
     })
-  }, [lessonId]) // Only re-run if lessonId changes
+  }, [filtered])
 
-  // Separate effect for rendering
-  useEffect(() => {
-    const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
-    
-    // Set canvas size
-    const rect = canvas.getBoundingClientRect()
-    const width = rect.width
-    const height = rect.height
-    canvas.width = width * devicePixelRatio
-    canvas.height = height * devicePixelRatio
-    ctx.scale(devicePixelRatio, devicePixelRatio)
-
-    let animationId: number
-
-    const draw = () => {
-      // Clear canvas
-      ctx.fillStyle = '#0f0720'
-      ctx.fillRect(0, 0, width, height)
-
-      // Draw connections when hovering
-      if (hovered !== null) {
-        const hoveredNode = nodes.current.find(n => n.id === hovered)
-        if (hoveredNode) {
-          nodes.current.forEach(other => {
-            if (other.id === hovered) return
-            const dx = hoveredNode.x - other.x
-            const dy = hoveredNode.y - other.y
-            const dist = Math.sqrt(dx * dx + dy * dy)
-            if (dist < 250) {
-              ctx.strokeStyle = '#00ffff60'
-              ctx.lineWidth = 2
-              ctx.beginPath()
-              ctx.moveTo(hoveredNode.x, hoveredNode.y)
-              ctx.lineTo(other.x, other.y)
-              ctx.stroke()
-            }
+  // Create edges (connections between nearby nodes)
+  const initialEdges: Edge[] = useMemo(() => {
+    const edges: Edge[] = []
+    initialNodes.forEach((nodeA, i) => {
+      initialNodes.slice(i + 1).forEach(nodeB => {
+        const dx = nodeA.position.x - nodeB.position.x
+        const dy = nodeA.position.y - nodeB.position.y
+        const dist = Math.sqrt(dx * dx + dy * dy)
+        if (dist < 200) {
+          edges.push({
+            id: `${nodeA.id}-${nodeB.id}`,
+            source: nodeA.id,
+            target: nodeB.id,
+            style: { stroke: '#7c3aed40', strokeWidth: 1 },
+            animated: false
           })
         }
-      }
-
-      // Draw nodes
-      nodes.current.forEach(node => {
-        const hue = node.stability * 120
-        const active = hovered === node.id
-
-        // HUGE dots - 25px radius!
-        ctx.fillStyle = active ? '#ffd700' : `hsl(${hue}, 70%, 55%)`
-        ctx.beginPath()
-        ctx.arc(node.x, node.y, active ? 30 : 25, 0, Math.PI * 2)
-        ctx.fill()
-
-        // Draw massive glow for active node
-        if (active) {
-          ctx.strokeStyle = '#00ffff'
-          ctx.lineWidth = 4
-          ctx.beginPath()
-          ctx.arc(node.x, node.y, 45, 0, Math.PI * 2)
-          ctx.stroke()
-        }
-
-        // Always show labels clearly
-        ctx.fillStyle = active ? '#ffffff' : '#ffffffa0'
-        ctx.font = active ? 'bold 20px sans-serif' : '13px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.textBaseline = 'middle'
-        ctx.fillText(node.text, node.x, node.y - (active ? 60 : 45))
-        
-        // Draw Portuguese translation when hovered
-        if (active) {
-          ctx.font = 'bold 16px sans-serif'
-          ctx.fillStyle = '#00ffff'
-          ctx.fillText(node.portuguese, node.x, node.y + 60)
-        }
       })
+    })
+    return edges
+  }, [initialNodes])
 
-      animationId = requestAnimationFrame(draw)
-    }
+  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
 
-    draw()
+  // Handle node hover
+  const onNodeMouseEnter: NodeMouseHandler = useCallback((_event, node) => {
+    // Highlight the hovered node
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === node.id) {
+          return {
+            ...n,
+            style: {
+              ...n.style,
+              border: '4px solid #00ffff',
+              boxShadow: '0 0 20px #00ffff',
+              transform: 'scale(1.2)',
+              zIndex: 1000
+            }
+          }
+        }
+        return n
+      })
+    )
 
-    return () => cancelAnimationFrame(animationId)
-  }, [lessonId, hovered])
+    // Highlight connected edges
+    setEdges((eds) =>
+      eds.map((e) => {
+        if (e.source === node.id || e.target === node.id) {
+          return {
+            ...e,
+            style: { stroke: '#00ffff', strokeWidth: 2 },
+            animated: true
+          }
+        }
+        return e
+      })
+    )
+  }, [setNodes, setEdges])
 
-  // Update cursor style based on hover state
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (canvas) {
-      canvas.style.cursor = hovered !== null ? 'pointer' : 'default'
-    }
-  }, [hovered])
+  const onNodeMouseLeave: NodeMouseHandler = useCallback((_event, node) => {
+    // Reset node style
+    setNodes((nds) =>
+      nds.map((n) => {
+        if (n.id === node.id) {
+          const word = filtered.find(w => w.id.toString() === n.id)!
+          return {
+            ...n,
+            style: {
+              ...n.style,
+              background: `hsl(${word.stability * 120}, 70%, 55%)`,
+              border: '2px solid transparent',
+              boxShadow: 'none',
+              transform: 'scale(1)',
+              zIndex: 1
+            }
+          }
+        }
+        return n
+      })
+    )
+
+    // Reset edges
+    setEdges((eds) =>
+      eds.map((e) => {
+        if (e.source === node.id || e.target === node.id) {
+          return {
+            ...e,
+            style: { stroke: '#7c3aed40', strokeWidth: 1 },
+            animated: false
+          }
+        }
+        return e
+      })
+    )
+  }, [setNodes, setEdges, filtered])
 
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
-      <canvas
-        ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
-        onMouseMove={(e) => {
-          const rect = e.currentTarget.getBoundingClientRect()
-          // FIX: Scale mouse coordinates to match canvas coordinate system
-          const x = (e.clientX - rect.left) * devicePixelRatio
-          const y = (e.clientY - rect.top) * devicePixelRatio
-          
-          // Find closest node (more forgiving than fixed radius)
-          const closest = nodes.current
-            .map(node => ({
-              node,
-              dist: Math.hypot(node.x - x, node.y - y)
-            }))
-            .sort((a, b) => a.dist - b.dist)[0]
-          
-          // Set hovered if within 40 units (scaled) - more precise
-          setHovered(closest && closest.dist < 40 * devicePixelRatio ? closest.node.id : null)
-        }}
-      />
-      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white max-w-xs">
+      <ReactFlow
+        nodes={nodes}
+        edges={edges}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
+        onNodeMouseEnter={onNodeMouseEnter}
+        onNodeMouseLeave={onNodeMouseLeave}
+        fitView
+        attributionPosition="bottom-right"
+        proOptions={{ hideAttribution: true }}
+      >
+        <Background color="#7c3aed20" gap={16} />
+        <Controls />
+      </ReactFlow>
+      
+      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white max-w-xs pointer-events-none">
         <h2 className="text-3xl font-bold mb-2">A Rede Semântica</h2>
-        <p className="opacity-80 text-lg">Clique em qualquer palavra</p>
+        <p className="opacity-80 text-lg">Passe o mouse sobre qualquer palavra</p>
         <p className="text-sm opacity-60 mt-2">60 palavras principais</p>
       </div>
     </div>
