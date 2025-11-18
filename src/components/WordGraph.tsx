@@ -156,8 +156,8 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
             }))
             .sort((a, b) => a.dist - b.dist)[0]
           
-          // Set hovered if within 60 units (scaled)
-          setHovered(closest && closest.dist < 60 * devicePixelRatio ? closest.node.id : null)
+          // Set hovered if within 40 units (scaled) - more precise
+          setHovered(closest && closest.dist < 40 * devicePixelRatio ? closest.node.id : null)
         }}
       />
       <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white max-w-xs">
