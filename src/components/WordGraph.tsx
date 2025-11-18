@@ -49,13 +49,9 @@ const nodeTypes = {
   wordNode: MemoizedCustomNode
 }
 
-const edgeTypes = {
-  glowing: GlowingEdge
-}
-
 export default function WordGraph({ lessonId }: { lessonId?: number }) {
   // BULLETPROOF STATE - bypasses useStore entirely!
-  const [activeNodeId, setActiveNodeId] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
 
   // Filter words
   const filtered = useMemo(() => 
@@ -87,12 +83,12 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           english: word.text, 
           portuguese: word.portuguese 
         },
-        selected: word.id.toString() === activeNodeId, // Manual selection tracking
+        selected: word.id.toString() === selectedId, // Manual selection tracking
       }
     })
-  }, [filtered, activeNodeId]) // Re-create when activeNodeId changes
+  }, [filtered, selectedId]) // Re-create when selectedId changes
 
-  // Create edges with activeNodeId in data
+  // Create base edges
   const edges = useMemo(() => {
     const edgeList: Edge[] = []
     nodes.forEach((node, i) => {
@@ -107,34 +103,37 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
             id: `${node.id}-${other.id}`,
             source: node.id,
             target: other.id,
-            type: 'glowing',
             animated: false,
-            data: { activeNodeId }, // Pass activeNodeId to edge!
           })
         }
       })
     })
-    console.log('Created edges:', edgeList.length, 'Active node:', activeNodeId)
+    console.log('Created edges:', edgeList.length)
     return edgeList
-  }, [nodes, activeNodeId])
+  }, [nodes])
+
+  // Map edges to pass the selectedId via data
+  const edgesWithSelection = edges.map(edge => ({
+    ...edge,
+    type: 'glowing',
+    data: { selectedId },
+  }))
 
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={edgesWithSelection}
         nodeTypes={nodeTypes}
-        edgeTypes={edgeTypes}
+        edgeTypes={{ glowing: GlowingEdge }}
         nodesDraggable={false}
         nodesConnectable={false}
         elementsSelectable={true}
+        selectNodesOnDrag={false}
         fitView
         fitViewOptions={{ padding: 0.3 }}
-        onNodeClick={(_e, node) => {
-          console.log('Clicked:', node.data.english)
-          setActiveNodeId(node.id) // Set active node on click!
-        }}
-        onPaneClick={() => setActiveNodeId(null)} // Deselect on background click
+        onNodeClick={(_, node) => setSelectedId(node.id)}
+        onPaneClick={() => setSelectedId(null)}
         attributionPosition="bottom-right"
         proOptions={{ hideAttribution: true }}
       >
@@ -152,7 +151,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
             zIndex: 1000,
           }}
         >
-          Active Node: {activeNodeId || 'none'}
+          Selected: {selectedId || 'none'}
         </div>
 
         <Background color="#0f0720" gap={40} />

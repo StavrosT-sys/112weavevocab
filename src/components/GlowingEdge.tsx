@@ -1,35 +1,33 @@
-// src/components/GlowingEdge.tsx
-// BULLETPROOF VERSION - uses activeNodeId from props, no useStore!
 import { EdgeProps, getBezierPath } from 'reactflow';
 
-export default function GlowingEdge(props: EdgeProps & { data?: { activeNodeId: string | null } }) {
-  const { source, target, data } = props;
-  
-  // Get activeNodeId from data prop (passed from parent)
-  const activeNodeId = data?.activeNodeId;
-  const isActive = activeNodeId === source || activeNodeId === target;
-
-  const [edgePath] = getBezierPath(props);
+export default function GlowingEdge({
+  source,
+  target,
+  sourceX,
+  sourceY,
+  targetX,
+  targetY,
+  data,
+}: EdgeProps & { data?: { selectedId: string | null } }) {
+  const isActive = data?.selectedId && (source === data.selectedId || target === data.selectedId);
+  const [edgePath] = getBezierPath({ sourceX, sourceY, targetX, targetY } as any);
 
   return (
     <>
-      {/* CYAN GLOW — only when connected to active node */}
       {isActive && (
         <path
           d={edgePath}
           stroke="#00ffff"
-          strokeWidth={20}
+          strokeWidth={24}
           fill="none"
-          opacity={0.5}
+          opacity={0.6}
           pointerEvents="none"
         />
       )}
-
-      {/* MAIN LINE — subtle purple when inactive, bright cyan when active */}
       <path
         d={edgePath}
-        stroke={isActive ? '#00ffff' : '#a855f770'}
-        strokeWidth={isActive ? 6 : 2.5}
+        stroke={isActive ? '#00ffff' : '#a855f780'}
+        strokeWidth={isActive ? 6 : 2}
         fill="none"
         strokeLinecap="round"
       />
