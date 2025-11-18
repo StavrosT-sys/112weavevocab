@@ -1,14 +1,15 @@
-// src/App.tsx
-// Updated with all 5 features integrated
-
+// src/App.tsx — FINAL WITH TRUE WEAVE
 import { useState } from 'react'
 import GraphCluster from './components/GraphCluster'
-import AudioNode from './components/AudioNode'
+import ExplorationMode from './components/ExplorationMode'
+import DashboardView from './components/DashboardView'
 import DuelSync from './components/DuelSync'
 import FeedbackForm from './components/FeedbackForm'
-import { words } from './data/words'
+
+type View = 'cluster' | 'explore' | 'dashboard'
 
 export default function App() {
+  const [view, setView] = useState<View>('cluster')
   const [selectedLesson, setSelectedLesson] = useState<number | null>(null)
   const myScore = 0 // Replace with actual score calculation
 
@@ -17,53 +18,37 @@ export default function App() {
       <DuelSync myScore={myScore} />
       <FeedbackForm />
 
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900">
-        <div className="container mx-auto px-4 py-8">
-          <h1 className="text-4xl font-bold text-white text-center mb-8">
-            VocabWeave
-          </h1>
-
-          {!selectedLesson ? (
-            <>
-              <h2 className="text-2xl text-white text-center mb-6">
-                Escolha uma lição
-              </h2>
-              <GraphCluster 
-                onLessonSelect={setSelectedLesson} 
-                selectedLesson={selectedLesson} 
-              />
-            </>
-          ) : (
-            <div className="p-6">
-              <button 
-                onClick={() => setSelectedLesson(null)} 
-                className="mb-6 text-cyan-400 hover:text-cyan-300 text-lg"
-              >
-                ← Voltar
-              </button>
-
-              <h2 className="text-3xl text-white mb-6">
-                Lição {selectedLesson}
-              </h2>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {words
-                  .filter(w => w.lesson === selectedLesson)
-                  .map(word => (
-                    <div 
-                      key={word.id} 
-                      className="relative bg-white/10 backdrop-blur rounded-xl p-6 text-white hover:bg-white/20 transition"
-                    >
-                      <h3 className="text-2xl font-bold mb-2">{word.text}</h3>
-                      <p className="text-lg text-cyan-300">{word.portuguese}</p>
-                      <AudioNode word={word.text} portuguese={word.portuguese} />
-                    </div>
-                  ))}
-              </div>
-            </div>
-          )}
+      {view === 'cluster' && (
+        <div className="min-h-screen bg-gradient-to-br from-indigo-900 to-purple-900">
+          <GraphCluster onSelect={setSelectedLesson} selected={selectedLesson} />
+          <div className="fixed bottom-8 left-1/2 -translate-x-1/2 flex gap-6 z-50">
+            <button onClick={() => setView('explore')} className="bg-cyan-500 text-black px-10 py-5 rounded-full text-2xl font-bold shadow-2xl hover:bg-cyan-400 transition">
+              Explorar Rede
+            </button>
+            <button onClick={() => setView('dashboard')} className="bg-purple-600 text-white px-10 py-5 rounded-full text-2xl font-bold shadow-2xl hover:bg-purple-500 transition">
+              Meu Progresso
+            </button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {view === 'explore' && (
+        <>
+          <ExplorationMode lessonId={selectedLesson || undefined} />
+          <button onClick={() => setView('cluster')} className="fixed top-8 left-8 bg-white/20 backdrop-blur rounded-full px-8 py-4 text-white z-50 text-xl hover:bg-white/30 transition">
+            ← Voltar
+          </button>
+        </>
+      )}
+
+      {view === 'dashboard' && (
+        <>
+          <DashboardView />
+          <button onClick={() => setView('cluster')} className="fixed top-8 left-8 bg-white/20 backdrop-blur rounded-full px-8 py-4 text-white z-50 text-xl hover:bg-white/30 transition">
+            ← Voltar
+          </button>
+        </>
+      )}
     </>
   )
 }

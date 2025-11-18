@@ -4,11 +4,11 @@ import { lessons } from '../data/lessons'
 import { words } from '../data/words'
 
 interface Props {
-  onLessonSelect: (lessonId: number) => void
-  selectedLesson: number | null
+  onSelect: (lessonId: number) => void
+  selected: number | null
 }
 
-export default function GraphCluster({ onLessonSelect, selectedLesson }: Props) {
+export default function GraphCluster({ onSelect, selected }: Props) {
   return (
     <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-4 p-6">
       {lessons.map((lesson) => {
@@ -18,14 +18,14 @@ export default function GraphCluster({ onLessonSelect, selectedLesson }: Props) 
           <motion.button
             key={lesson.id}
             className={`relative rounded-full p-6 text-white font-bold shadow-2xl transition-all ${
-              selectedLesson === lesson.id ? 'ring-4 ring-cyan-400 scale-110' : ''
+              selected === lesson.id ? 'ring-4 ring-cyan-400 scale-110' : ''
             }`}
             style={{
               background: `radial-gradient(circle, #7c3aed ${mastered / wordCount * 100}%, #4c1d95 100%)`,
             }}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => onLessonSelect(lesson.id)}
+            onClick={() => onSelect(lesson.id)}
           >
             <div className="text-2xl">{lesson.id}</div>
             <div className="text-xs mt-1 opacity-80">{mastered}/{wordCount}</div>
