@@ -1,14 +1,13 @@
 // src/components/WordGraph.tsx
-// Team's final solution - reactive edge highlighting!
+// Bulletproof onNodeClick solution - bypasses useStore!
 
-import { memo, useMemo } from 'react'
+import { memo, useMemo, useState } from 'react'
 import ReactFlow, { 
   Node, 
   Edge, 
   Background,
   Controls,
   NodeProps,
-  useStore,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { words, Word } from '../data/words'
@@ -55,6 +54,9 @@ const edgeTypes = {
 }
 
 export default function WordGraph({ lessonId }: { lessonId?: number }) {
+  // BULLETPROOF STATE - bypasses useStore entirely!
+  const [activeNodeId, setActiveNodeId] = useState<string | null>(null)
+
   // Filter words
   const filtered = useMemo(() => 
     lessonId 
@@ -78,23 +80,22 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         id: word.id.toString(),
         type: 'wordNode',
         position: {
-          x: centerX + Math.cos(angle) * r,
-          y: centerY + Math.sin(angle) * r
+          x: centerX + r * Math.cos(angle),
+          y: centerY + r * Math.sin(angle)
         },
         data: { 
-          english: word.text,
-          portuguese: word.portuguese
+          english: word.text, 
+          portuguese: word.portuguese 
         },
-        draggable: false,
-        selectable: true
+        selected: word.id.toString() === activeNodeId, // Manual selection tracking
       }
     })
-  }, [filtered])
+  }, [filtered, activeNodeId]) // Re-create when activeNodeId changes
 
-  // Create edges (connections between nearby nodes) - NUCLEAR OPTION
-  const edges: Edge[] = useMemo(() => {
-    const edgeList = nodes.flatMap((node, i) => {
-      const connections: Edge[] = []
+  // Create edges with activeNodeId in data
+  const edges = useMemo(() => {
+    const edgeList: Edge[] = []
+    nodes.forEach((node, i) => {
       nodes.slice(i + 1).forEach((other) => {
         const dx = node.position.x - other.position.x
         const dy = node.position.y - other.position.y
@@ -102,20 +103,20 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
 
         // Increased distance + always create some edges so we can see them
         if (distance < 380) {
-          connections.push({
+          edgeList.push({
             id: `${node.id}-${other.id}`,
             source: node.id,
             target: other.id,
             type: 'glowing',
             animated: false,
+            data: { activeNodeId }, // Pass activeNodeId to edge!
           })
         }
       })
-      return connections
     })
-    console.log('Created edges:', edgeList.length)
+    console.log('Created edges:', edgeList.length, 'Active node:', activeNodeId)
     return edgeList
-  }, [nodes])
+  }, [nodes, activeNodeId])
 
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
@@ -131,31 +132,28 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         fitViewOptions={{ padding: 0.3 }}
         onNodeClick={(_e, node) => {
           console.log('Clicked:', node.data.english)
+          setActiveNodeId(node.id) // Set active node on click!
         }}
+        onPaneClick={() => setActiveNodeId(null)} // Deselect on background click
         attributionPosition="bottom-right"
         proOptions={{ hideAttribution: true }}
       >
-        {/* DEBUG OVERLAY — REMOVE AFTER FIX */}
-        {(() => {
-          const selectedNodeIds = useStore((state) => state.getNodes().filter((n) => n.selected).map((n) => n.id));
-          return (
-            <div
-              style={{
-                position: 'absolute',
-                top: 10,
-                right: 10,
-                background: 'rgba(0,0,0,0.8)',
-                color: 'white',
-                padding: '8px 12px',
-                borderRadius: '8px',
-                fontSize: '12px',
-                zIndex: 1000,
-              }}
-            >
-              Selected IDs: {JSON.stringify(selectedNodeIds)} (Count: {selectedNodeIds.length})
-            </div>
-          );
-        })()}
+        {/* DEBUG OVERLAY */}
+        <div
+          style={{
+            position: 'absolute',
+            top: 10,
+            right: 10,
+            background: 'rgba(0,0,0,0.8)',
+            color: 'white',
+            padding: '8px 12px',
+            borderRadius: '8px',
+            fontSize: '12px',
+            zIndex: 1000,
+          }}
+        >
+          Active Node: {activeNodeId || 'none'}
+        </div>
 
         <Background color="#0f0720" gap={40} />
         <Controls />
