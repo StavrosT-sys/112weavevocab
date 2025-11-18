@@ -7,7 +7,9 @@ export default function GlowingEdge(props: EdgeProps) {
   // THIS IS THE ONE THAT ACTUALLY FORCES RE-RENDER EVERY TIME
   const selectedNodeId = useStore((state) => {
     const selected = Array.from(state.nodeInternals.values()).find(n => n.selected)
-    return selected?.id || null
+    const id = selected?.id || null
+    console.log('SELECTED NODE ID:', id)   // ← ADD THIS LINE
+    return id
   }, (a, b) => a !== b)  // ← THIS SHALLOW EQUALITY COMPARER IS THE KEY
 
   const isActive = source === selectedNodeId || target === selectedNodeId
@@ -30,8 +32,8 @@ export default function GlowingEdge(props: EdgeProps) {
       {/* MAIN LINE */}
       <path
         d={edgePath}
-        stroke={isActive ? '#00ffff' : '#a855f740'}
-        strokeWidth={isActive ? 5 : 2}
+        stroke={isActive ? '#00ffff' : '#ffffff'}
+        strokeWidth={isActive ? 8 : 3}
         fill="none"
         strokeLinecap="round"
       />
