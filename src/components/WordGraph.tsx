@@ -1,5 +1,5 @@
 // src/components/WordGraph.tsx
-// Zero external deps — pure React + Framer Motion + canvas
+// Zero external deps — pure React + canvas
 // 60 FPS even on a $150 phone
 
 import { useEffect, useRef, useState } from 'react'
@@ -20,18 +20,24 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
   useEffect(() => {
     const canvas = canvasRef.current!
     const ctx = canvas.getContext('2d')!
-    const width = canvas.width = canvas.offsetWidth * devicePixelRatio
-    const height = canvas.height = canvas.offsetHeight * devicePixelRatio
+    
+    // Set canvas size to match display size
+    const rect = canvas.getBoundingClientRect()
+    const width = rect.width
+    const height = rect.height
+    canvas.width = width * devicePixelRatio
+    canvas.height = height * devicePixelRatio
     ctx.scale(devicePixelRatio, devicePixelRatio)
 
     const filtered = lessonId 
       ? words.filter(w => w.lesson === lessonId)
       : words.slice(0, 400) // cap for performance
 
+    // Initialize nodes in unscaled coordinate space
     nodes.current = filtered.map(w => ({
       ...w,
-      x: width / 2 + (Math.random() - 0.5) * 600,
-      y: height / 2 + (Math.random() - 0.5) * 600,
+      x: width / 2 + (Math.random() - 0.5) * (width * 0.8),
+      y: height / 2 + (Math.random() - 0.5) * (height * 0.8),
       vx: 0,
       vy: 0
     }))
@@ -39,34 +45,40 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     let animationId: number
 
     const tick = () => {
+      // Clear canvas
       ctx.fillStyle = '#0f0720'
-      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight)
+      ctx.fillRect(0, 0, width, height)
 
       // Simple force simulation
       nodes.current.forEach((node) => {
         let fx = 0, fy = 0
 
-        // Repulsion
+        // Repulsion between nodes
         nodes.current.forEach(other => {
           if (node === other) return
           const dx = node.x - other.x
           const dy = node.y - other.y
           const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const force = 8000 / (dist * dist)
+          const force = 5000 / (dist * dist)
           fx += dx * force
           fy += dy * force
         })
 
         // Attraction to center
-        fx += (width / 2 - node.x) * 0.0008
-        fy += (height / 2 - node.y) * 0.0008
+        fx += (width / 2 - node.x) * 0.001
+        fy += (height / 2 - node.y) * 0.001
 
         // Damping
-        node.vx = node.vx * 0.92 + fx * 0.02
-        node.vy = node.vy * 0.92 + fy * 0.02
+        node.vx = node.vx * 0.9 + fx * 0.01
+        node.vy = node.vy * 0.9 + fy * 0.01
 
+        // Update position
         node.x += node.vx
         node.y += node.vy
+
+        // Keep in bounds
+        node.x = Math.max(50, Math.min(width - 50, node.x))
+        node.y = Math.max(50, Math.min(height - 50, node.y))
       })
 
       // Draw connections
@@ -75,10 +87,10 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           const dx = a.x - b.x
           const dy = a.y - b.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 200) {
+          if (dist < 150) {
             const active = hovered === a.id || hovered === b.id
-            ctx.strokeStyle = active ? '#00ffff' : '#7c3aed30'
-            ctx.lineWidth = active ? 3 : 1
+            ctx.strokeStyle = active ? '#00ffff' : '#7c3aed40'
+            ctx.lineWidth = active ? 2 : 1
             ctx.beginPath()
             ctx.moveTo(a.x, a.y)
             ctx.lineTo(b.x, b.y)
@@ -92,26 +104,34 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         const hue = node.stability * 120
         const active = hovered === node.id
 
-        // Glow
-        if (active) {
-          ctx.shadowBlur = 40
-          ctx.shadowColor = '#00ffff'
-        }
-
+        // Draw circle
         ctx.fillStyle = active ? '#ffd700' : `hsl(${hue}, 70%, 55%)`
         ctx.beginPath()
-        ctx.arc(node.x, node.y, 18 + node.stability * 25, 0, Math.PI * 2)
+        ctx.arc(node.x, node.y, active ? 8 : 6, 0, Math.PI * 2)
         ctx.fill()
 
-        ctx.shadowBlur = 0
+        // Draw glow for active node
+        if (active) {
+          ctx.strokeStyle = '#00ffff'
+          ctx.lineWidth = 2
+          ctx.beginPath()
+          ctx.arc(node.x, node.y, 12, 0, Math.PI * 2)
+          ctx.stroke()
+        }
+
+        // Draw text
         ctx.fillStyle = '#ffffff'
-        ctx.font = active ? 'bold 16px sans-serif' : '14px sans-serif'
+        ctx.font = active ? 'bold 14px sans-serif' : '12px sans-serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(node.text, node.x, node.y - 8)
-        ctx.font = '10px sans-serif'
-        ctx.fillStyle = '#ffffff80'
-        ctx.fillText(node.portuguese, node.x, node.y + 12)
+        ctx.fillText(node.text, node.x, node.y - 15)
+        
+        // Draw Portuguese translation
+        if (active) {
+          ctx.font = '10px sans-serif'
+          ctx.fillStyle = '#ffffff80'
+          ctx.fillText(node.portuguese, node.x, node.y + 20)
+        }
       })
 
       animationId = requestAnimationFrame(tick)
@@ -126,13 +146,13 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     <div className="relative w-full h-screen bg-[#0f0720]">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0"
+        className="absolute inset-0 w-full h-full"
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()
           const x = e.clientX - rect.left
           const y = e.clientY - rect.top
           const found = nodes.current.find(n => 
-            Math.hypot(n.x - x * devicePixelRatio, n.y - y * devicePixelRatio) < 60
+            Math.hypot(n.x - x, n.y - y) < 20
           )
           setHovered(found?.id || null)
         }}
