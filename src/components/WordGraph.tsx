@@ -1,5 +1,5 @@
 // src/components/WordGraph.tsx
-// Static semantic network - clean and spacious
+// Static semantic network - easy to interact with
 
 import { useEffect, useRef, useState } from 'react'
 import { words, Word } from '../data/words'
@@ -81,10 +81,10 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         const hue = node.stability * 120
         const active = hovered === node.id
 
-        // Draw circle
+        // Draw circle (bigger for easier targeting)
         ctx.fillStyle = active ? '#ffd700' : `hsl(${hue}, 70%, 55%)`
         ctx.beginPath()
-        ctx.arc(node.x, node.y, active ? 12 : 8, 0, Math.PI * 2)
+        ctx.arc(node.x, node.y, active ? 14 : 10, 0, Math.PI * 2)
         ctx.fill()
 
         // Draw glow for active node
@@ -92,20 +92,22 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           ctx.strokeStyle = '#00ffff'
           ctx.lineWidth = 3
           ctx.beginPath()
-          ctx.arc(node.x, node.y, 20, 0, Math.PI * 2)
+          ctx.arc(node.x, node.y, 24, 0, Math.PI * 2)
           ctx.stroke()
-          
-          // Draw text only when hovered
-          ctx.fillStyle = '#ffffff'
-          ctx.font = 'bold 18px sans-serif'
-          ctx.textAlign = 'center'
-          ctx.textBaseline = 'middle'
-          ctx.fillText(node.text, node.x, node.y - 35)
-          
-          // Draw Portuguese translation
+        }
+
+        // Always show faint labels so users know what they're hovering
+        ctx.fillStyle = active ? '#ffffff' : '#ffffff30'
+        ctx.font = active ? 'bold 18px sans-serif' : '10px sans-serif'
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(node.text, node.x, node.y - (active ? 40 : 20))
+        
+        // Draw Portuguese translation when hovered
+        if (active) {
           ctx.font = 'bold 14px sans-serif'
           ctx.fillStyle = '#00ffff'
-          ctx.fillText(node.portuguese, node.x, node.y + 35)
+          ctx.fillText(node.portuguese, node.x, node.y + 40)
         }
       })
 
@@ -126,8 +128,9 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           const rect = e.currentTarget.getBoundingClientRect()
           const x = e.clientX - rect.left
           const y = e.clientY - rect.top
+          // Much larger hover radius (50px) for easier interaction
           const found = nodes.current.find(n => 
-            Math.hypot(n.x - x, n.y - y) < 30
+            Math.hypot(n.x - x, n.y - y) < 50
           )
           setHovered(found?.id || null)
         }}
