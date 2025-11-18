@@ -14,17 +14,12 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
   const [hovered, setHovered] = useState<number | null>(null)
   const nodes = useRef<Node[]>([])
 
+  // Initialize nodes ONCE on mount
   useEffect(() => {
     const canvas = canvasRef.current!
-    const ctx = canvas.getContext('2d')!
-    
-    // Set canvas size to match display size
     const rect = canvas.getBoundingClientRect()
     const width = rect.width
     const height = rect.height
-    canvas.width = width * devicePixelRatio
-    canvas.height = height * devicePixelRatio
-    ctx.scale(devicePixelRatio, devicePixelRatio)
 
     // Only 60 words for spacious, easy-to-click layout
     const filtered = lessonId 
@@ -36,6 +31,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     const centerY = height / 2
     const maxRadius = Math.min(width, height) * 0.48
     
+    // Generate positions ONCE - never regenerate!
     nodes.current = filtered.map((w, i) => {
       const angle = (i / filtered.length) * Math.PI * 2
       // Vary radius from 50% to 100% of maxRadius
@@ -47,6 +43,20 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         y: centerY + Math.sin(angle) * r
       }
     })
+  }, [lessonId]) // Only re-run if lessonId changes
+
+  // Separate effect for rendering
+  useEffect(() => {
+    const canvas = canvasRef.current!
+    const ctx = canvas.getContext('2d')!
+    
+    // Set canvas size
+    const rect = canvas.getBoundingClientRect()
+    const width = rect.width
+    const height = rect.height
+    canvas.width = width * devicePixelRatio
+    canvas.height = height * devicePixelRatio
+    ctx.scale(devicePixelRatio, devicePixelRatio)
 
     let animationId: number
 
