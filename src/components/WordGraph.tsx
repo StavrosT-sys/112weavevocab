@@ -16,6 +16,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hovered, setHovered] = useState<number | null>(null)
   const nodes = useRef<Node[]>([])
+  const tickCount = useRef(0)
 
   useEffect(() => {
     const canvas = canvasRef.current!
@@ -42,44 +43,65 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       vy: 0
     }))
 
+    tickCount.current = 0
     let animationId: number
 
     const tick = () => {
+      tickCount.current++
+      
+      // Cooling factor - simulation gradually slows down over time
+      const cooling = Math.max(0.1, 1 - tickCount.current / 600)
+      
       // Clear canvas
       ctx.fillStyle = '#0f0720'
       ctx.fillRect(0, 0, width, height)
 
-      // Simple force simulation
-      nodes.current.forEach((node) => {
-        let fx = 0, fy = 0
+      // Only run physics for first 300 frames (10 seconds), then just gentle drift
+      if (tickCount.current < 300) {
+        // Simple force simulation
+        nodes.current.forEach((node) => {
+          let fx = 0, fy = 0
 
-        // Repulsion between nodes
-        nodes.current.forEach(other => {
-          if (node === other) return
-          const dx = node.x - other.x
-          const dy = node.y - other.y
-          const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const force = 2000 / (dist * dist)
-          fx += dx * force
-          fy += dy * force
+          // Repulsion between nodes (much weaker)
+          nodes.current.forEach(other => {
+            if (node === other) return
+            const dx = node.x - other.x
+            const dy = node.y - other.y
+            const dist = Math.sqrt(dx * dx + dy * dy) || 1
+            const force = 800 / (dist * dist) * cooling
+            fx += dx * force
+            fy += dy * force
+          })
+
+          // Attraction to center (very weak)
+          fx += (width / 2 - node.x) * 0.0001 * cooling
+          fy += (height / 2 - node.y) * 0.0001 * cooling
+
+          // Very strong damping (friction)
+          node.vx = node.vx * 0.75 + fx * 0.002
+          node.vy = node.vy * 0.75 + fy * 0.002
+
+          // Update position
+          node.x += node.vx * cooling
+          node.y += node.vy * cooling
+
+          // Keep in bounds
+          node.x = Math.max(50, Math.min(width - 50, node.x))
+          node.y = Math.max(50, Math.min(height - 50, node.y))
         })
-
-        // Attraction to center
-        fx += (width / 2 - node.x) * 0.0003
-        fy += (height / 2 - node.y) * 0.0003
-
-        // Damping (stronger = slower movement)
-        node.vx = node.vx * 0.85 + fx * 0.005
-        node.vy = node.vy * 0.85 + fy * 0.005
-
-        // Update position
-        node.x += node.vx
-        node.y += node.vy
-
-        // Keep in bounds
-        node.x = Math.max(50, Math.min(width - 50, node.x))
-        node.y = Math.max(50, Math.min(height - 50, node.y))
-      })
+      } else {
+        // After settling, just very gentle random drift
+        nodes.current.forEach((node) => {
+          node.vx = node.vx * 0.95 + (Math.random() - 0.5) * 0.02
+          node.vy = node.vy * 0.95 + (Math.random() - 0.5) * 0.02
+          node.x += node.vx
+          node.y += node.vy
+          
+          // Keep in bounds
+          node.x = Math.max(50, Math.min(width - 50, node.x))
+          node.y = Math.max(50, Math.min(height - 50, node.y))
+        })
+      }
 
       // Draw connections
       nodes.current.forEach((a, i) => {
