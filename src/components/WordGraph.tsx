@@ -59,18 +59,18 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           const dx = node.x - other.x
           const dy = node.y - other.y
           const dist = Math.sqrt(dx * dx + dy * dy) || 1
-          const force = 5000 / (dist * dist)
+          const force = 2000 / (dist * dist)
           fx += dx * force
           fy += dy * force
         })
 
         // Attraction to center
-        fx += (width / 2 - node.x) * 0.001
-        fy += (height / 2 - node.y) * 0.001
+        fx += (width / 2 - node.x) * 0.0003
+        fy += (height / 2 - node.y) * 0.0003
 
-        // Damping
-        node.vx = node.vx * 0.9 + fx * 0.01
-        node.vy = node.vy * 0.9 + fy * 0.01
+        // Damping (stronger = slower movement)
+        node.vx = node.vx * 0.85 + fx * 0.005
+        node.vy = node.vy * 0.85 + fy * 0.005
 
         // Update position
         node.x += node.vx
