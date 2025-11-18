@@ -1,5 +1,5 @@
 // src/components/WordGraph.tsx
-// Static semantic network - easy to interact with
+// Bold, easy-to-click semantic network
 
 import { useEffect, useRef, useState } from 'react'
 import { words, Word } from '../data/words'
@@ -26,20 +26,20 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     canvas.height = height * devicePixelRatio
     ctx.scale(devicePixelRatio, devicePixelRatio)
 
-    // Limit to 120 words for cleaner visualization
+    // Only 60 words for spacious, easy-to-click layout
     const filtered = lessonId 
-      ? words.filter(w => w.lesson === lessonId)
-      : words.slice(0, 120)
+      ? words.filter(w => w.lesson === lessonId).slice(0, 60)
+      : words.slice(0, 60)
 
-    // Create spacious layout - use full screen with good spacing
+    // Use 80% of screen space - fill the viewport!
     const centerX = width / 2
     const centerY = height / 2
-    const maxRadius = Math.min(width, height) * 0.45
+    const maxRadius = Math.min(width, height) * 0.48
     
     nodes.current = filtered.map((w, i) => {
       const angle = (i / filtered.length) * Math.PI * 2
-      // Vary radius from 40% to 100% of maxRadius for depth
-      const radiusVariation = 0.4 + Math.random() * 0.6
+      // Vary radius from 50% to 100% of maxRadius
+      const radiusVariation = 0.5 + Math.random() * 0.5
       const r = maxRadius * radiusVariation
       return {
         ...w,
@@ -55,7 +55,7 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       ctx.fillStyle = '#0f0720'
       ctx.fillRect(0, 0, width, height)
 
-      // Draw connections (only for nearby nodes and when hovering)
+      // Draw connections when hovering
       if (hovered !== null) {
         const hoveredNode = nodes.current.find(n => n.id === hovered)
         if (hoveredNode) {
@@ -64,9 +64,9 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
             const dx = hoveredNode.x - other.x
             const dy = hoveredNode.y - other.y
             const dist = Math.sqrt(dx * dx + dy * dy)
-            if (dist < 200) {
-              ctx.strokeStyle = '#00ffff40'
-              ctx.lineWidth = 1
+            if (dist < 250) {
+              ctx.strokeStyle = '#00ffff60'
+              ctx.lineWidth = 2
               ctx.beginPath()
               ctx.moveTo(hoveredNode.x, hoveredNode.y)
               ctx.lineTo(other.x, other.y)
@@ -81,33 +81,33 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         const hue = node.stability * 120
         const active = hovered === node.id
 
-        // Draw circle (bigger for easier targeting)
+        // HUGE dots - 25px radius!
         ctx.fillStyle = active ? '#ffd700' : `hsl(${hue}, 70%, 55%)`
         ctx.beginPath()
-        ctx.arc(node.x, node.y, active ? 14 : 10, 0, Math.PI * 2)
+        ctx.arc(node.x, node.y, active ? 30 : 25, 0, Math.PI * 2)
         ctx.fill()
 
-        // Draw glow for active node
+        // Draw massive glow for active node
         if (active) {
           ctx.strokeStyle = '#00ffff'
-          ctx.lineWidth = 3
+          ctx.lineWidth = 4
           ctx.beginPath()
-          ctx.arc(node.x, node.y, 24, 0, Math.PI * 2)
+          ctx.arc(node.x, node.y, 45, 0, Math.PI * 2)
           ctx.stroke()
         }
 
-        // Always show faint labels so users know what they're hovering
-        ctx.fillStyle = active ? '#ffffff' : '#ffffff30'
-        ctx.font = active ? 'bold 18px sans-serif' : '10px sans-serif'
+        // Always show labels clearly
+        ctx.fillStyle = active ? '#ffffff' : '#ffffffa0'
+        ctx.font = active ? 'bold 20px sans-serif' : '13px sans-serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(node.text, node.x, node.y - (active ? 40 : 20))
+        ctx.fillText(node.text, node.x, node.y - (active ? 60 : 45))
         
         // Draw Portuguese translation when hovered
         if (active) {
-          ctx.font = 'bold 14px sans-serif'
+          ctx.font = 'bold 16px sans-serif'
           ctx.fillStyle = '#00ffff'
-          ctx.fillText(node.portuguese, node.x, node.y + 40)
+          ctx.fillText(node.portuguese, node.x, node.y + 60)
         }
       })
 
@@ -128,17 +128,17 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
           const rect = e.currentTarget.getBoundingClientRect()
           const x = e.clientX - rect.left
           const y = e.clientY - rect.top
-          // Much larger hover radius (50px) for easier interaction
+          // MASSIVE 100px hover radius for super easy clicking!
           const found = nodes.current.find(n => 
-            Math.hypot(n.x - x, n.y - y) < 50
+            Math.hypot(n.x - x, n.y - y) < 100
           )
           setHovered(found?.id || null)
         }}
       />
-      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white">
+      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white max-w-xs">
         <h2 className="text-3xl font-bold mb-2">A Rede Semântica</h2>
-        <p className="opacity-80">Passe o mouse sobre qualquer palavra</p>
-        <p className="text-sm opacity-60 mt-2">120 palavras do Oxford 3000</p>
+        <p className="opacity-80 text-lg">Clique em qualquer palavra</p>
+        <p className="text-sm opacity-60 mt-2">60 palavras principais</p>
       </div>
     </div>
   )
