@@ -22,9 +22,9 @@ export default function GlowingEdge(props: EdgeProps) {
         <path
           d={edgePath}
           stroke="#00ffff"
-          strokeWidth={24}
+          strokeWidth={20}
           fill="none"
-          opacity={0.6}
+          opacity={0.5}
           pointerEvents="none"
         />
       )}
@@ -32,8 +32,8 @@ export default function GlowingEdge(props: EdgeProps) {
       {/* MAIN LINE — subtle purple when inactive, bright cyan when active */}
       <path
         d={edgePath}
-        stroke={isActive ? '#00ffff' : '#a855f740'}
-        strokeWidth={isActive ? 5 : 1.5}
+        stroke={isActive ? '#00ffff' : '#a855f770'}
+        strokeWidth={isActive ? 6 : 2.5}
         fill="none"
         strokeLinecap="round"
       />
