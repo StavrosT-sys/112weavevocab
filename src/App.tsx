@@ -5,6 +5,7 @@ import ExplorationMode from './components/ExplorationMode'
 import DashboardView from './components/DashboardView'
 import DuelSync from './components/DuelSync'
 import FeedbackForm from './components/FeedbackForm'
+import ErrorBoundary from './components/ErrorBoundary'
 
 type View = 'cluster' | 'explore' | 'dashboard'
 
@@ -14,7 +15,7 @@ export default function App() {
   const myScore = 0 // Replace with actual score calculation
 
   return (
-    <>
+    <ErrorBoundary>
       <DuelSync myScore={myScore} />
       <FeedbackForm />
 
@@ -49,6 +50,6 @@ export default function App() {
           </button>
         </>
       )}
-    </>
+    </ErrorBoundary>
   )
 }
