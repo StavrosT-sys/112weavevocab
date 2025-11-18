@@ -70,6 +70,9 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
     const centerY = 400
     const radius = 350
 
+    // Safety check: return empty array if no words
+    if (filtered.length === 0) return []
+
     return filtered.map((word: Word, i: number) => {
       const angle = (i / filtered.length) * Math.PI * 2
       const radiusVariation = 0.5 + Math.random() * 0.5
