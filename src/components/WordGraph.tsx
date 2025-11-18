@@ -8,6 +8,7 @@ import ReactFlow, {
   Background,
   Controls,
   NodeProps,
+  useStore,
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { words, Word } from '../data/words'
@@ -134,6 +135,28 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         attributionPosition="bottom-right"
         proOptions={{ hideAttribution: true }}
       >
+        {/* DEBUG OVERLAY — REMOVE AFTER FIX */}
+        {(() => {
+          const selectedNodeIds = useStore((state) => state.getNodes().filter((n) => n.selected).map((n) => n.id));
+          return (
+            <div
+              style={{
+                position: 'absolute',
+                top: 10,
+                right: 10,
+                background: 'rgba(0,0,0,0.8)',
+                color: 'white',
+                padding: '8px 12px',
+                borderRadius: '8px',
+                fontSize: '12px',
+                zIndex: 1000,
+              }}
+            >
+              Selected IDs: {JSON.stringify(selectedNodeIds)} (Count: {selectedNodeIds.length})
+            </div>
+          );
+        })()}
+
         <Background color="#0f0720" gap={40} />
         <Controls />
       </ReactFlow>
