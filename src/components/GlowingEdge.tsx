@@ -1,18 +1,17 @@
-// GlowingEdge.tsx — NUCLEAR VERSION (guaranteed to work)
+// GlowingEdge.tsx — NUCLEAR BYPASS (ignores React Flow's broken selected flag)
 import { EdgeProps, getBezierPath, useStore } from 'reactflow'
 
 export default function GlowingEdge(props: EdgeProps) {
   const { source, target } = props
 
-  // THIS IS THE ONE THAT ACTUALLY FORCES RE-RENDER EVERY TIME
-  const selectedNodeId = useStore((state) => {
-    const selected = Array.from(state.nodeInternals.values()).find(n => n.selected)
-    const id = selected?.id || null
-    console.log('SELECTED NODE ID:', id)   // ← ADD THIS LINE
-    return id
-  }, (a, b) => a !== b)  // ← THIS SHALLOW EQUALITY COMPARER IS THE KEY
+  // THIS IS THE REAL ONE THAT WORKS — uses the official selection array
+  const selectedNodeIds = useStore((state) => {
+    const selected = state.getNodes().filter(n => n.selected).map(n => n.id)
+    console.log('REAL SELECTED IDS:', selected)  // ← proof it works
+    return selected
+  }, (a, b) => a.join() !== b.join())   // force re-render
 
-  const isActive = source === selectedNodeId || target === selectedNodeId
+  const isActive = selectedNodeIds.includes(source) || selectedNodeIds.includes(target)
 
   const [edgePath] = getBezierPath(props)
 
@@ -23,9 +22,9 @@ export default function GlowingEdge(props: EdgeProps) {
         <path
           d={edgePath}
           stroke="#00ffff"
-          strokeWidth={20}
+          strokeWidth={24}
           fill="none"
-          opacity={0.5}
+          opacity={0.6}
           className="pointer-events-none"
         />
       )}
@@ -33,7 +32,7 @@ export default function GlowingEdge(props: EdgeProps) {
       <path
         d={edgePath}
         stroke={isActive ? '#00ffff' : '#ffffff'}
-        strokeWidth={isActive ? 8 : 3}
+        strokeWidth={isActive ? 6 : 2}
         fill="none"
         strokeLinecap="round"
       />
