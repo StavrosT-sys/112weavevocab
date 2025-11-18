@@ -107,7 +107,6 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
             target: other.id,
             type: 'glowing',
             animated: false,
-            style: { stroke: '#a855f760' }, // force visible purple base
           })
         }
       })

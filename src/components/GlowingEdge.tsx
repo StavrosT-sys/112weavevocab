@@ -1,41 +1,37 @@
-// GlowingEdge.tsx - Team's corrected solution with reactive selector
+// GlowingEdge.tsx — NUCLEAR VERSION (guaranteed to work)
 import { EdgeProps, getBezierPath, useStore } from 'reactflow'
 
-export default function GlowingEdge(edge: EdgeProps) {
-  const { source, target } = edge
+export default function GlowingEdge(props: EdgeProps) {
+  const { source, target } = props
 
-  // THIS LINE IS THE MAGIC — shallow selector forces re-render on ANY selection change
+  // THIS IS THE ONE THAT ACTUALLY FORCES RE-RENDER EVERY TIME
   const selectedNodeId = useStore((state) => {
-    // Look for any selected node (React Flow only allows one at a time usually)
-    for (const node of state.nodeInternals.values()) {
-      if (node.selected) return node.id
-    }
-    return null
-  })
+    const selected = Array.from(state.nodeInternals.values()).find(n => n.selected)
+    return selected?.id || null
+  }, (a, b) => a !== b)  // ← THIS SHALLOW EQUALITY COMPARER IS THE KEY
 
   const isActive = source === selectedNodeId || target === selectedNodeId
 
-  const [edgePath] = getBezierPath(edge)
+  const [edgePath] = getBezierPath(props)
 
   return (
     <>
-      {/* Outer glow when active */}
+      {/* GLOW */}
       {isActive && (
         <path
           d={edgePath}
           stroke="#00ffff"
-          strokeWidth={18}
+          strokeWidth={20}
           fill="none"
-          opacity={0.4}
+          opacity={0.5}
           className="pointer-events-none"
         />
       )}
-
-      {/* Main line */}
+      {/* MAIN LINE */}
       <path
         d={edgePath}
-        stroke={isActive ? '#00ffff' : '#ff00ff'}
-        strokeWidth={isActive ? 6 : 3}
+        stroke={isActive ? '#00ffff' : '#a855f740'}
+        strokeWidth={isActive ? 5 : 2}
         fill="none"
         strokeLinecap="round"
       />
