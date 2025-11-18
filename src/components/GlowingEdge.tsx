@@ -1,15 +1,18 @@
 // src/components/GlowingEdge.tsx
-import { EdgeProps, getBezierPath } from 'reactflow';
-import { useStore } from 'reactflow';
+import { EdgeProps, getBezierPath, useStore } from 'reactflow';
+import { shallow } from 'zustand/shallow';
 
 export default function GlowingEdge(props: EdgeProps) {
   const { source, target } = props;
 
-  // THE UNBEATABLE VERSION — works 100% of the time
-  const selectedNodeIds = useStore(
-    (state) => state.getNodes().filter((n) => n.selected).map((n) => n.id),
-    (a, b) => a.join(',') !== b.join(',') // forces re-render on every selection change
-  );
+  // THIS IS THE NUCLEAR FINAL VERSION — works even when React Flow tries to kill us
+  const selectedNodeIds = useStore((state) => {
+    const selected: string[] = [];
+    state.getNodes().forEach((n) => {
+      if (n.selected) selected.push(n.id);
+    });
+    return selected;
+  }, shallow); // ← React Flow's built-in shallow comparator
 
   const isActive = selectedNodeIds.includes(source) || selectedNodeIds.includes(target);
 
