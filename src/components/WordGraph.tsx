@@ -1,6 +1,5 @@
 // src/components/WordGraph.tsx
-// Zero external deps — pure React + canvas
-// 60 FPS even on a $150 phone
+// Static semantic network - no physics, just beautiful visualization
 
 import { useEffect, useRef, useState } from 'react'
 import { words, Word } from '../data/words'
@@ -8,15 +7,12 @@ import { words, Word } from '../data/words'
 interface Node extends Word {
   x: number
   y: number
-  vx: number
-  vy: number
 }
 
 export default function WordGraph({ lessonId }: { lessonId?: number }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const [hovered, setHovered] = useState<number | null>(null)
   const nodes = useRef<Node[]>([])
-  const tickCount = useRef(0)
 
   useEffect(() => {
     const canvas = canvasRef.current!
@@ -34,84 +30,37 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
       ? words.filter(w => w.lesson === lessonId)
       : words.slice(0, 400) // cap for performance
 
-    // Initialize nodes in unscaled coordinate space
-    nodes.current = filtered.map(w => ({
-      ...w,
-      x: width / 2 + (Math.random() - 0.5) * (width * 0.8),
-      y: height / 2 + (Math.random() - 0.5) * (height * 0.8),
-      vx: 0,
-      vy: 0
-    }))
+    // Create static layout - circular arrangement with some randomness
+    const centerX = width / 2
+    const centerY = height / 2
+    const radius = Math.min(width, height) * 0.35
+    
+    nodes.current = filtered.map((w, i) => {
+      const angle = (i / filtered.length) * Math.PI * 2
+      const r = radius * (0.5 + Math.random() * 0.5)
+      return {
+        ...w,
+        x: centerX + Math.cos(angle) * r + (Math.random() - 0.5) * 50,
+        y: centerY + Math.sin(angle) * r + (Math.random() - 0.5) * 50
+      }
+    })
 
-    tickCount.current = 0
     let animationId: number
 
-    const tick = () => {
-      tickCount.current++
-      
-      // Cooling factor - simulation gradually slows down over time
-      const cooling = Math.max(0.1, 1 - tickCount.current / 600)
-      
+    const draw = () => {
       // Clear canvas
       ctx.fillStyle = '#0f0720'
       ctx.fillRect(0, 0, width, height)
 
-      // Only run physics for first 300 frames (10 seconds), then just gentle drift
-      if (tickCount.current < 300) {
-        // Simple force simulation
-        nodes.current.forEach((node) => {
-          let fx = 0, fy = 0
-
-          // Repulsion between nodes (much weaker)
-          nodes.current.forEach(other => {
-            if (node === other) return
-            const dx = node.x - other.x
-            const dy = node.y - other.y
-            const dist = Math.sqrt(dx * dx + dy * dy) || 1
-            const force = 800 / (dist * dist) * cooling
-            fx += dx * force
-            fy += dy * force
-          })
-
-          // Attraction to center (very weak)
-          fx += (width / 2 - node.x) * 0.0001 * cooling
-          fy += (height / 2 - node.y) * 0.0001 * cooling
-
-          // Very strong damping (friction)
-          node.vx = node.vx * 0.75 + fx * 0.002
-          node.vy = node.vy * 0.75 + fy * 0.002
-
-          // Update position
-          node.x += node.vx * cooling
-          node.y += node.vy * cooling
-
-          // Keep in bounds
-          node.x = Math.max(50, Math.min(width - 50, node.x))
-          node.y = Math.max(50, Math.min(height - 50, node.y))
-        })
-      } else {
-        // After settling, just very gentle random drift
-        nodes.current.forEach((node) => {
-          node.vx = node.vx * 0.95 + (Math.random() - 0.5) * 0.02
-          node.vy = node.vy * 0.95 + (Math.random() - 0.5) * 0.02
-          node.x += node.vx
-          node.y += node.vy
-          
-          // Keep in bounds
-          node.x = Math.max(50, Math.min(width - 50, node.x))
-          node.y = Math.max(50, Math.min(height - 50, node.y))
-        })
-      }
-
-      // Draw connections
+      // Draw connections (only for nearby nodes)
       nodes.current.forEach((a, i) => {
         nodes.current.slice(i + 1).forEach(b => {
           const dx = a.x - b.x
           const dy = a.y - b.y
           const dist = Math.sqrt(dx * dx + dy * dy)
-          if (dist < 150) {
+          if (dist < 120) {
             const active = hovered === a.id || hovered === b.id
-            ctx.strokeStyle = active ? '#00ffff' : '#7c3aed40'
+            ctx.strokeStyle = active ? '#00ffff80' : '#7c3aed20'
             ctx.lineWidth = active ? 2 : 1
             ctx.beginPath()
             ctx.moveTo(a.x, a.y)
@@ -129,37 +78,37 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         // Draw circle
         ctx.fillStyle = active ? '#ffd700' : `hsl(${hue}, 70%, 55%)`
         ctx.beginPath()
-        ctx.arc(node.x, node.y, active ? 8 : 6, 0, Math.PI * 2)
+        ctx.arc(node.x, node.y, active ? 10 : 6, 0, Math.PI * 2)
         ctx.fill()
 
         // Draw glow for active node
         if (active) {
           ctx.strokeStyle = '#00ffff'
-          ctx.lineWidth = 2
+          ctx.lineWidth = 3
           ctx.beginPath()
-          ctx.arc(node.x, node.y, 12, 0, Math.PI * 2)
+          ctx.arc(node.x, node.y, 16, 0, Math.PI * 2)
           ctx.stroke()
         }
 
-        // Draw text
-        ctx.fillStyle = '#ffffff'
-        ctx.font = active ? 'bold 14px sans-serif' : '12px sans-serif'
+        // Always draw text for better visibility
+        ctx.fillStyle = active ? '#ffffff' : '#ffffff80'
+        ctx.font = active ? 'bold 14px sans-serif' : '11px sans-serif'
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(node.text, node.x, node.y - 15)
+        ctx.fillText(node.text, node.x, node.y - 18)
         
-        // Draw Portuguese translation
+        // Draw Portuguese translation when hovered
         if (active) {
-          ctx.font = '10px sans-serif'
-          ctx.fillStyle = '#ffffff80'
-          ctx.fillText(node.portuguese, node.x, node.y + 20)
+          ctx.font = 'bold 12px sans-serif'
+          ctx.fillStyle = '#00ffff'
+          ctx.fillText(node.portuguese, node.x, node.y + 25)
         }
       })
 
-      animationId = requestAnimationFrame(tick)
+      animationId = requestAnimationFrame(draw)
     }
 
-    tick()
+    draw()
 
     return () => cancelAnimationFrame(animationId)
   }, [lessonId, hovered])
@@ -168,13 +117,13 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     <div className="relative w-full h-screen bg-[#0f0720]">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full"
+        className="absolute inset-0 w-full h-full cursor-pointer"
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()
           const x = e.clientX - rect.left
           const y = e.clientY - rect.top
           const found = nodes.current.find(n => 
-            Math.hypot(n.x - x, n.y - y) < 20
+            Math.hypot(n.x - x, n.y - y) < 25
           )
           setHovered(found?.id || null)
         }}
