@@ -119,20 +119,35 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
     return () => cancelAnimationFrame(animationId)
   }, [lessonId, hovered])
 
+  // Update cursor style based on hover state
+  useEffect(() => {
+    const canvas = canvasRef.current
+    if (canvas) {
+      canvas.style.cursor = hovered !== null ? 'pointer' : 'default'
+    }
+  }, [hovered])
+
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0 w-full h-full cursor-pointer"
+        className="absolute inset-0 w-full h-full"
         onMouseMove={(e) => {
           const rect = e.currentTarget.getBoundingClientRect()
-          const x = e.clientX - rect.left
-          const y = e.clientY - rect.top
-          // MASSIVE 100px hover radius for super easy clicking!
-          const found = nodes.current.find(n => 
-            Math.hypot(n.x - x, n.y - y) < 100
-          )
-          setHovered(found?.id || null)
+          // FIX: Scale mouse coordinates to match canvas coordinate system
+          const x = (e.clientX - rect.left) * devicePixelRatio
+          const y = (e.clientY - rect.top) * devicePixelRatio
+          
+          // Find closest node (more forgiving than fixed radius)
+          const closest = nodes.current
+            .map(node => ({
+              node,
+              dist: Math.hypot(node.x - x, node.y - y)
+            }))
+            .sort((a, b) => a.dist - b.dist)[0]
+          
+          // Set hovered if within 60 units (scaled)
+          setHovered(closest && closest.dist < 60 * devicePixelRatio ? closest.node.id : null)
         }}
       />
       <div className="absolute top-8 left-8 bg-black/70 backdrop-blur rounded-2xl p-6 text-white max-w-xs">
