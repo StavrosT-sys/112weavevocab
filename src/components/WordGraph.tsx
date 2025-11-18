@@ -1,5 +1,5 @@
 // src/components/WordGraph.tsx
-// Team's corrected solution - proper scaling and weave!
+// Team's final solution - reactive edge highlighting!
 
 import { memo, useMemo } from 'react'
 import ReactFlow, { 
@@ -8,12 +8,10 @@ import ReactFlow, {
   Background,
   Controls,
   NodeProps,
-  EdgeProps,
-  useStore,
-  getBezierPath
 } from 'reactflow'
 import 'reactflow/dist/style.css'
 import { words, Word } from '../data/words'
+import GlowingEdge from './GlowingEdge'
 
 // Custom node with proper selected prop
 function CustomNode({ data, selected }: NodeProps) {
@@ -46,51 +44,6 @@ function CustomNode({ data, selected }: NodeProps) {
 }
 
 const MemoizedCustomNode = memo(CustomNode)
-
-// Glowing edge with proper useStore
-function GlowingEdge({
-  sourceX,
-  sourceY,
-  targetX,
-  targetY,
-  source,
-  target,
-}: EdgeProps) {
-  const sourceNode = useStore((s) => s.nodeInternals.get(source))
-  const targetNode = useStore((s) => s.nodeInternals.get(target))
-  const isActive = sourceNode?.selected || targetNode?.selected
-
-  const [edgePath] = getBezierPath({
-    sourceX,
-    sourceY,
-    targetX,
-    targetY,
-  })
-
-  return (
-    <>
-      {/* Outer glow (only when active) */}
-      {isActive && (
-        <path
-          d={edgePath}
-          stroke="#00ffff"
-          strokeWidth={16}
-          fill="none"
-          opacity={0.3}
-          className="pointer-events-none"
-        />
-      )}
-      {/* Inner line */}
-      <path
-        d={edgePath}
-        stroke={isActive ? '#00ffff' : '#7c3aed40'}
-        strokeWidth={isActive ? 3 : 1}
-        fill="none"
-        strokeLinecap="round"
-      />
-    </>
-  )
-}
 
 const nodeTypes = {
   wordNode: MemoizedCustomNode
