@@ -137,6 +137,7 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
     // Set selected node
     setSelectedId(clickedNode.id)
     console.log('🎯 Node clicked:', clickedNode.id, clickedNode.data)
+    alert(`Clicked: ${clickedNode.id}`)
 
     // Immediate cleanup - prevent overlap
     clearAllEchoes()
