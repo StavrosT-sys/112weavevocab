@@ -1,18 +1,62 @@
 // src/components/WordGraph.tsx
-// React Flow semantic network - proper event handling!
+// React Flow with custom nodes - CSS-based hover!
 
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import ReactFlow, { 
   Node, 
   Edge, 
   Background,
   Controls,
-  useNodesState,
-  useEdgesState,
-  NodeMouseHandler
+  NodeProps
 } from 'reactflow'
 import 'reactflow/dist/style.css'
-import { words } from '../data/words'
+import { words, Word } from '../data/words'
+
+// Custom node component with CSS hover
+function WordNode({ data }: NodeProps) {
+  return (
+    <div 
+      className="word-node"
+      style={{
+        background: data.bgColor,
+        width: '80px',
+        height: '80px',
+        borderRadius: '50%',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'white',
+        cursor: 'pointer',
+        border: '2px solid transparent',
+        transition: 'all 0.2s ease',
+        padding: '8px',
+        fontSize: '12px',
+        textAlign: 'center'
+      }}
+    >
+      <div>
+        <div className="font-bold text-sm">{data.word}</div>
+        <div className="text-xs text-cyan-400 mt-1 word-translation">{data.translation}</div>
+      </div>
+      <style>{`
+        .word-node:hover {
+          background: #ffd700 !important;
+          border: 4px solid #00ffff !important;
+          box-shadow: 0 0 20px #00ffff !important;
+          transform: scale(1.2) !important;
+          z-index: 1000 !important;
+        }
+        .word-node:hover .word-translation {
+          display: block !important;
+        }
+      `}</style>
+    </div>
+  )
+}
+
+const nodeTypes = {
+  wordNode: WordNode
+}
 
 export default function WordGraph({ lessonId }: { lessonId?: number }) {
   // Filter words
@@ -24,12 +68,12 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
   )
 
   // Create nodes in circular layout
-  const initialNodes: Node[] = useMemo(() => {
+  const nodes: Node[] = useMemo(() => {
     const centerX = 400
     const centerY = 400
     const radius = 350
 
-    return filtered.map((word, i) => {
+    return filtered.map((word: Word, i: number) => {
       const angle = (i / filtered.length) * Math.PI * 2
       const radiusVariation = 0.5 + Math.random() * 0.5
       const r = radius * radiusVariation
@@ -37,49 +81,31 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
 
       return {
         id: word.id.toString(),
-        type: 'default',
+        type: 'wordNode',
         position: {
           x: centerX + Math.cos(angle) * r,
           y: centerY + Math.sin(angle) * r
         },
         data: { 
-          label: (
-            <div className="text-center">
-              <div className="font-bold text-sm">{word.text}</div>
-              <div className="text-xs text-cyan-400 mt-1">{word.portuguese}</div>
-            </div>
-          ),
-          originalBg: bgColor // Store original color
+          word: word.text,
+          translation: word.portuguese,
+          bgColor: bgColor
         },
-        style: {
-          background: bgColor,
-          color: 'white',
-          border: '2px solid transparent',
-          borderRadius: '50%',
-          width: 80,
-          height: 80,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: 'pointer',
-          fontSize: '12px',
-          padding: '8px',
-          transition: 'all 0.2s ease'
-        }
+        draggable: false
       }
     })
   }, [filtered])
 
   // Create edges (connections between nearby nodes)
-  const initialEdges: Edge[] = useMemo(() => {
-    const edges: Edge[] = []
-    initialNodes.forEach((nodeA, i) => {
-      initialNodes.slice(i + 1).forEach(nodeB => {
+  const edges: Edge[] = useMemo(() => {
+    const edgeList: Edge[] = []
+    nodes.forEach((nodeA, i) => {
+      nodes.slice(i + 1).forEach(nodeB => {
         const dx = nodeA.position.x - nodeB.position.x
         const dy = nodeA.position.y - nodeB.position.y
         const dist = Math.sqrt(dx * dx + dy * dy)
         if (dist < 200) {
-          edges.push({
+          edgeList.push({
             id: `${nodeA.id}-${nodeB.id}`,
             source: nodeA.id,
             target: nodeB.id,
@@ -89,115 +115,19 @@ export default function WordGraph({ lessonId }: { lessonId?: number }) {
         }
       })
     })
-    return edges
-  }, [initialNodes])
-
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges)
-
-  // Handle node hover
-  const onNodeMouseEnter: NodeMouseHandler = useCallback((_event, node) => {
-    // Highlight the hovered node
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.id === node.id) {
-          return {
-            ...n,
-            style: {
-              background: '#ffd700',
-              color: 'white',
-              border: '4px solid #00ffff',
-              borderRadius: '50%',
-              width: 80,
-              height: 80,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              fontSize: '12px',
-              padding: '8px',
-              boxShadow: '0 0 20px #00ffff',
-              transform: 'scale(1.2)',
-              zIndex: 1000,
-              transition: 'all 0.2s ease'
-            }
-          }
-        }
-        return n
-      })
-    )
-
-    // Highlight connected edges
-    setEdges((eds) =>
-      eds.map((e) => {
-        if (e.source === node.id || e.target === node.id) {
-          return {
-            ...e,
-            style: { stroke: '#00ffff', strokeWidth: 2 },
-            animated: true
-          }
-        }
-        return e
-      })
-    )
-  }, [setNodes, setEdges])
-
-  const onNodeMouseLeave: NodeMouseHandler = useCallback((_event, node) => {
-    // Reset node style using stored original color
-    setNodes((nds) =>
-      nds.map((n) => {
-        if (n.id === node.id) {
-          return {
-            ...n,
-            style: {
-              background: n.data.originalBg || '#ef4444', // Fallback to red
-              color: 'white',
-              border: '2px solid transparent',
-              borderRadius: '50%',
-              width: 80,
-              height: 80,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: 'pointer',
-              fontSize: '12px',
-              padding: '8px',
-              boxShadow: 'none',
-              transform: 'scale(1)',
-              zIndex: 1,
-              transition: 'all 0.2s ease'
-            }
-          }
-        }
-        return n
-      })
-    )
-
-    // Reset edges
-    setEdges((eds) =>
-      eds.map((e) => {
-        if (e.source === node.id || e.target === node.id) {
-          return {
-            ...e,
-            style: { stroke: '#7c3aed40', strokeWidth: 1 },
-            animated: false
-          }
-        }
-        return e
-      })
-    )
-  }, [setNodes, setEdges])
+    return edgeList
+  }, [nodes])
 
   return (
     <div className="relative w-full h-screen bg-[#0f0720]">
       <ReactFlow
         nodes={nodes}
         edges={edges}
-        onNodesChange={onNodesChange}
-        onEdgesChange={onEdgesChange}
-        onNodeMouseEnter={onNodeMouseEnter}
-        onNodeMouseLeave={onNodeMouseLeave}
+        nodeTypes={nodeTypes}
         fitView
+        nodesDraggable={false}
+        nodesConnectable={false}
+        elementsSelectable={false}
         attributionPosition="bottom-right"
         proOptions={{ hideAttribution: true }}
       >
