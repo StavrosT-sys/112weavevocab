@@ -215,7 +215,7 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
         elementsSelectable={true}
         selectNodesOnDrag={false}
         fitView
-        fitViewOptions={{ padding: 0.3 }}
+        fitViewOptions={{ padding: 0.15, minZoom: 0.8, maxZoom: 1.2 }}
         onNodeClick={handleNodeClick}
         onPaneClick={() => {
           setSelectedId(null)
@@ -245,7 +245,7 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
         <Controls />
       </ReactFlow>
       
-      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur-lg rounded-2xl p-6 text-white max-w-sm pointer-events-none">
+      <div className="absolute top-8 left-8 bg-black/70 backdrop-blur-lg rounded-2xl p-6 text-white max-w-sm pointer-events-none z-[9998]">
         <h2 className="text-4xl font-bold mb-3">A Rede Semântica</h2>
         <p className="text-lg opacity-90">Clique em uma palavra para ouvir conexões</p>
       </div>
