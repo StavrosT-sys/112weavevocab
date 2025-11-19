@@ -13,10 +13,10 @@ body {
    ============================================ */
 
 /* Echo pulse animation for connected nodes */
-.react-flow__node.echo-active {
+.echo-target.echo-active {
   animation: echo-pulse 0.8s cubic-bezier(0.22, 0.61, 0.36, 1) forwards;
   z-index: 100 !important; /* Above other nodes */
-  pointer-events: none;   /* Prevent interference during animation */
+  position: relative; /* Ensure z-index works */
 }
 
 @keyframes echo-pulse {

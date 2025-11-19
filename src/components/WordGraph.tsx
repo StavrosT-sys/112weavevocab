@@ -16,16 +16,18 @@ import { words, Word } from '../data/words'
 import GlowingEdge from './GlowingEdge'
 
 // Custom node with proper selected prop
-function CustomNode({ data, selected }: NodeProps) {
+function CustomNode({ data, selected, id }: NodeProps) {
   return (
     <div className="group">
       {/* THIS INNER DIV SCALES */}
       <div
         className={`
+          echo-target
           transition-transform duration-200 ease-out
           ${selected ? 'scale-125 z-50' : 'scale-100'}
         `}
         style={{ transformOrigin: 'center center' }}
+        data-node-id={id}
       >
         <div
           className={`
@@ -127,7 +129,7 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
   const clearAllEchoes = useCallback(() => {
     activeTimeouts.current.forEach(t => clearTimeout(t))
     activeTimeouts.current.clear()
-    document.querySelectorAll('.react-flow__node.echo-active').forEach(el => {
+    document.querySelectorAll('.echo-target.echo-active').forEach(el => {
       el.classList.remove('echo-active')
     })
   }, [])
@@ -165,18 +167,18 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
       const delay = 280 + index * 680 // 280ms initial synaptic delay
 
       const timeoutId = setTimeout(() => {
-        // Visual flash
-        const nodeEl = document.querySelector<HTMLElement>(
-          `.react-flow__node[data-id="${node.id}"]`
+        // Visual flash - target the inner content div, not the React Flow wrapper
+        const targetEl = document.querySelector<HTMLElement>(
+          `.echo-target[data-node-id="${node.id}"]`
         )
-        if (nodeEl) {
-          nodeEl.classList.add('echo-active')
+        if (targetEl) {
+          targetEl.classList.add('echo-active')
           // Auto-remove class when animation ends
           const removeClass = () => {
-            nodeEl.classList.remove('echo-active')
-            nodeEl.removeEventListener('animationend', removeClass)
+            targetEl.classList.remove('echo-active')
+            targetEl.removeEventListener('animationend', removeClass)
           }
-          nodeEl.addEventListener('animationend', removeClass)
+          targetEl.addEventListener('animationend', removeClass)
         }
 
         // Audio - safe fallback
