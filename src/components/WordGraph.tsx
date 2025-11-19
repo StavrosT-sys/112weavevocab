@@ -23,9 +23,9 @@ function CustomNode({ data, selected }: NodeProps) {
       <div
         className={`
           transition-transform duration-200 ease-out
-          ${selected ? 'scale-125' : 'scale-100'}
-          origin-center
+          ${selected ? 'scale-125 z-50' : 'scale-100'}
         `}
+        style={{ transformOrigin: 'center center' }}
       >
         <div
           className={`
@@ -66,9 +66,9 @@ function WordGraphInner({ lessonId }: { lessonId?: number }) {
 
   // Create nodes in circular layout
   const nodes: Node[] = useMemo(() => {
-    const centerX = 400
-    const centerY = 400
-    const radius = 350
+    const centerX = 500
+    const centerY = 450
+    const radius = 320
 
     // Safety check: return empty array if no words
     if (filtered.length === 0) return []
