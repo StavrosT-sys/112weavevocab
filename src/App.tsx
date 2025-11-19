@@ -36,7 +36,7 @@ export default function App() {
       {view === 'explore' && (
         <>
           <ExplorationMode lessonId={selectedLesson || undefined} />
-          <button onClick={() => setView('cluster')} className="fixed top-8 left-8 bg-white/20 backdrop-blur rounded-full px-8 py-4 text-white z-[9999] text-xl hover:bg-white/30 transition shadow-xl">
+          <button onClick={() => setView('cluster')} className="fixed top-6 right-6 bg-white/20 backdrop-blur rounded-full px-6 py-3 text-white z-[9999] text-base hover:bg-white/30 transition shadow-xl">
             ← Voltar
           </button>
         </>
@@ -45,7 +45,7 @@ export default function App() {
       {view === 'dashboard' && (
         <>
           <DashboardView />
-          <button onClick={() => setView('cluster')} className="fixed top-8 left-8 bg-white/20 backdrop-blur rounded-full px-8 py-4 text-white z-[9999] text-xl hover:bg-white/30 transition shadow-xl">
+          <button onClick={() => setView('cluster')} className="fixed top-6 right-6 bg-white/20 backdrop-blur rounded-full px-6 py-3 text-white z-[9999] text-base hover:bg-white/30 transition shadow-xl">
             ← Voltar
           </button>
         </>
